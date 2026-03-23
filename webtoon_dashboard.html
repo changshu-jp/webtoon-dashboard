@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ウェブトゥーン管理ダッシュボード</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;font-size:14px;color:#1a1a1a;background:#f0eeea;min-height:100vh;}
+.app{max-width:1040px;margin:0 auto;padding:20px 16px;}
+h1{font-size:17px;font-weight:700;margin-bottom:16px;}
+.tab-bar{display:flex;border-bottom:1.5px solid #ddd;margin-bottom:20px;}
+.tab{padding:10px 22px;font-size:13px;cursor:pointer;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;color:#888;background:none;transition:all 0.15s;}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:700;}
+.tab:hover:not(.active){color:#444;}
+.page{display:none;}.page.active{display:block;}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px 20px;margin-bottom:14px;}
+.btn{padding:6px 13px;font-size:12px;border-radius:7px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#1a1a1a;transition:all 0.15s;white-space:nowrap;}
+.btn:hover{background:#f0f0f0;}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+.btn-primary:hover{background:#333;}
+.btn-sm{padding:3px 9px;font-size:11px;}
+.btn-danger{border-color:#dc2626;color:#dc2626;background:#fff;}
+.btn-danger:hover{background:#fff5f5;}
+.btn-success{background:#15803d;color:#fff;border-color:#15803d;}
+.btn-success:hover{background:#166534;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.sec-title{font-size:15px;font-weight:700;}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:9px;border:1px solid #e5e5e5;}
+.filter-bar label{font-size:11px;color:#666;}
+.fsel{padding:5px 9px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-group label{display:block;font-size:11px;color:#666;margin-bottom:3px;}
+.fi{width:100%;padding:6px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;background:#fff;color:#1a1a1a;}
+.fi:focus{outline:none;border-color:#888;}
+.add-form{background:#f9f9f7;border-radius:10px;padding:14px 18px;margin-bottom:14px;border:1px solid #e8e8e8;}
+.work-badge{width:36px;height:36px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.work-title-text{font-weight:700;font-size:14px;}
+.work-meta{font-size:11px;color:#666;margin-top:2px;line-height:1.8;}
+.ptable{width:100%;border-collapse:collapse;font-size:12px;}
+.ptable th{text-align:center;padding:5px 6px;color:#666;font-weight:500;border-bottom:1px solid #eee;white-space:nowrap;background:#fafafa;font-size:11px;}
+.ptable th:first-child{text-align:left;}
+.ptable td{padding:5px 6px;text-align:center;border-bottom:1px solid #f0f0f0;}
+.ptable td:first-child{text-align:left;}
+.ptable tr:last-child td{border-bottom:none;}
+.ep-in{width:50px;text-align:center;padding:3px 4px;font-size:12px;border:1px solid #ccc;border-radius:4px;}
+.pill{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.done{background:#dcfce7;color:#166534;}
+.inp{background:#fef9c3;color:#854d0e;}
+.ns{background:#f1f5f9;color:#64748b;}
+.sched-box{margin-top:10px;padding:11px 13px;background:#f0f7ff;border-radius:8px;border:1px solid #d0e4ff;}
+.sched-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e4eeff;font-size:12px;}
+.sched-row:last-child{border-bottom:none;}
+.warn{color:#991b1b;font-weight:700;}
+.ok{color:#166534;font-weight:700;}
+.hist-panel{margin-top:12px;border-top:1px solid #eee;padding-top:12px;}
+.hist-ep-in{width:46px;text-align:center;padding:2px 4px;font-size:12px;border:1px solid #ccc;border-radius:4px;}
+.diff-pos{color:#166534;font-weight:700;}
+.diff-neg{color:#991b1b;font-weight:700;}
+.week-chart-wrap{margin-top:12px;position:relative;height:160px;}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.metric-card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:11px 13px;}
+.metric-label{font-size:11px;color:#888;margin-bottom:3px;}
+.metric-value{font-size:20px;font-weight:700;}
+.metric-sub{font-size:10px;color:#aaa;margin-top:2px;}
+.green{color:#166534;}.red{color:#991b1b;}
+.sub-tab-bar{display:flex;gap:6px;margin-bottom:14px;}
+.sub-tab{padding:5px 14px;font-size:12px;border:1px solid #ccc;border-radius:20px;cursor:pointer;background:#fff;color:#888;transition:all 0.15s;}
+.sub-tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-weight:700;}
+.cost-head{display:grid;grid-template-columns:1.7fr 145px 125px 110px;gap:8px;padding:6px 0;border-bottom:1px solid #eee;margin-bottom:4px;}
+.col-h{font-size:11px;color:#888;text-align:right;}
+.col-h:first-child{text-align:left;}
+.col-h:last-child{text-align:center;}
+.cost-row{display:grid;grid-template-columns:1.7fr 145px 125px 110px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #f0f0f0;}
+.cost-total-row{display:grid;grid-template-columns:1.7fr 145px 125px 110px;gap:8px;align-items:center;padding:9px 0;border-top:2px solid #ddd;margin-top:2px;background:#fafafa;border-radius:0 0 8px 8px;}
+.c-in{width:100%;padding:4px 7px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;color:#1a1a1a;text-align:right;}
+.c-in:focus{outline:none;border-color:#888;}
+.tog-g{display:flex;border:1px solid #ccc;border-radius:5px;overflow:hidden;}
+.tog{flex:1;padding:3px 6px;font-size:11px;border:none;background:#fff;color:#888;cursor:pointer;}
+.tog.active{background:#1a1a1a;color:#fff;}
+.cur-sel{display:flex;border:1px solid #ccc;border-radius:5px;overflow:hidden;margin-bottom:4px;max-width:108px;}
+.cur-btn{flex:1;padding:3px 7px;font-size:11px;border:none;background:#fff;color:#888;cursor:pointer;}
+.cur-btn.active{background:#1a1a1a;color:#fff;}
+.pl-sum{border:1px solid #e5e5e5;border-radius:10px;overflow:hidden;margin-top:12px;}
+.pl-row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.pl-row:last-child{border-bottom:none;}
+.pl-row.total{font-weight:700;background:#f9f9f9;font-size:14px;}
+.be-box{border:1px solid #bfdbfe;border-radius:10px;padding:13px 16px;background:#eff6ff;margin-top:12px;}
+.be-box.profit{border-color:#bbf7d0;background:#f0fdf4;}
+.be-title{font-size:11px;color:#666;margin-bottom:4px;}
+.be-val{font-size:22px;font-weight:700;color:#1d4ed8;}
+.be-val.pv{color:#166534;}
+.be-sub{font-size:11px;color:#666;margin-top:3px;}
+.month-table{width:100%;border-collapse:collapse;font-size:12px;}
+.month-table th{padding:6px 9px;text-align:right;color:#666;font-weight:500;border-bottom:1px solid #eee;white-space:nowrap;background:#fafafa;}
+.month-table th:first-child{text-align:left;}
+.month-table td{padding:5px 9px;text-align:right;border-bottom:1px solid #f0f0f0;}
+.month-table td:first-child{text-align:left;}
+.month-table tr:last-child td{border-bottom:none;}
+.m-in{width:88px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;text-align:right;}
+.graph-wrap{position:relative;height:270px;margin-bottom:10px;}
+.fin-filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+.ffbtn{padding:5px 12px;font-size:11px;border:1px solid #ccc;border-radius:20px;cursor:pointer;background:#fff;color:#666;transition:all 0.15s;}
+.ffbtn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+.ih{display:flex;gap:4px;align-items:center;justify-content:flex-end;}
+.ih input{width:62px;}
+.ih span{font-size:10px;color:#888;white-space:nowrap;}
+.hidden{display:none;}
+/* Edit inline panel */
+.edit-panel{background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.edit-panel-title{font-size:14px;font-weight:700;margin-bottom:12px;color:#1d4ed8;}
+/* Finance list view */
+.fin-list{display:flex;flex-direction:column;gap:10px;}
+.fin-list-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:14px 18px;cursor:pointer;transition:border-color 0.15s;}
+.fin-list-card:hover{border-color:#999;}
+.fin-list-card.selected{border-color:#1a1a1a;border-width:2px;}
+.flc-title{font-weight:700;font-size:14px;margin-bottom:4px;}
+.flc-meta{font-size:11px;color:#888;}
+.flc-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.badge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:#dcfce7;color:#166534;}
+.badge-red{background:#fee2e2;color:#991b1b;}
+.badge-blue{background:#dbeafe;color:#1d4ed8;}
+.badge-gray{background:#f1f5f9;color:#475569;}
+</style>
+</head>
+<body>
+<div class="app">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+  <h1 style="margin:0;">ウェブトゥーン管理ダッシュボード</h1>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="sync-status"><span style="font-size:11px;color:#888;">☁️ 未接続</span></div>
+    <button class="btn btn-sm" onclick="setupSheets()" style="font-size:11px;" title="Google Sheets と連携して複数人でリアルタイム共有">
+      🔗 Sheets連携
+    </button>
+    <button class="btn btn-sm" onclick="syncFromSheets()" id="btn-sync-now" style="font-size:11px;display:none;" title="今すぐ同期">
+      🔄 今すぐ同期
+    </button>
+  </div>
+</div>
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('progress',this)">進行状況</button>
+  <button class="tab" onclick="switchTab('finance',this)">収支管理</button>
+</div>
+
+<!-- 作品編集パネル (インライン) -->
+<div class="edit-panel hidden" id="edit-panel">
+  <div class="edit-panel-title">✏️ 作品情報を編集</div>
+  <div class="form-grid">
+    <div class="form-group"><label>作品名</label><input class="fi" id="e-title"/></div>
+    <div class="form-group"><label>ジャンル</label><input class="fi" id="e-genre"/></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group"><label>パートナー社</label><input class="fi" id="e-partner"/></div>
+    <div class="form-group"><label>契約話数</label><input class="fi" id="e-total" type="number"/></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group"><label>契約日</label><input class="fi" id="e-contract" type="date"/></div>
+    <div class="form-group"><label>契約終了日</label><input class="fi" id="e-contract-end" type="date"/></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group"><label>連載開始日</label><input class="fi" id="e-start" type="date"/></div>
+    <div class="form-group"><label>連載開始話数</label><input class="fi" id="e-startep" type="number" min="1"/></div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group"><label>バッファ目標（FIX話数）</label><input class="fi" id="e-buf" type="number"/></div>
+  </div>
+  <input type="hidden" id="e-wid"/>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+    <button class="btn btn-sm" onclick="closeEditPanel()">キャンセル</button>
+    <button class="btn btn-primary btn-sm" onclick="saveEditWork()">保存</button>
+  </div>
+</div>
+
+<div class="page active" id="page-progress">
+  <div class="sec-hdr">
+    <span class="sec-title">作品進行状況</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="exportData()" title="データをJSONファイルで保存">📤 エクスポート</button>
+      <label class="btn btn-sm" style="cursor:pointer;" title="保存したJSONファイルを読み込む">📥 インポート<input type="file" accept=".json" onchange="importData(event)" style="display:none;"/></label>
+      <button class="btn btn-sm" onclick="toggleTrash()" id="trash-btn">🗑 ゴミ箱 <span id="trash-count" style="background:#dc2626;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:2px;display:none;">0</span></button>
+      <button class="btn btn-primary btn-sm" onclick="toggleAddForm()">+ 作品を追加</button>
+    </div>
+  </div>
+  <!-- ゴミ箱パネル -->
+  <div class="hidden" id="trash-panel" style="background:#fff8f8;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:10px;">🗑 削除済み作品（最大10件保持）</div>
+    <div id="trash-list"><div style="font-size:12px;color:#888;text-align:center;padding:8px 0;">削除済み作品はありません</div></div>
+  </div>
+  <div class="filter-bar">
+    <label>作品：</label>
+    <select class="fsel" id="f-work" onchange="renderWorks()"><option value="all">すべて</option></select>
+    <label>パートナー：</label>
+    <select class="fsel" id="f-partner" onchange="renderWorks()"><option value="all">すべて</option></select>
+    <label>状態：</label>
+    <select class="fsel" id="f-status" onchange="renderWorks()">
+      <option value="all">すべて</option>
+      <option value="fix-ng">FIX未完了のみ</option>
+      <option value="fix-ok">FIX完了のみ</option>
+    </select>
+  </div>
+  <div class="add-form hidden" id="add-form">
+    <div class="form-grid">
+      <div class="form-group"><label>作品名</label><input class="fi" id="nw-title" placeholder="恋するモンスター"/></div>
+      <div class="form-group"><label>ジャンル</label><input class="fi" id="nw-genre" placeholder="ロマンス"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>パートナー社</label><input class="fi" id="nw-partner" placeholder="○○出版"/></div>
+      <div class="form-group"><label>契約話数</label><input class="fi" id="nw-total" type="number" placeholder="100"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>契約日</label><input class="fi" id="nw-contract" type="date"/></div>
+      <div class="form-group"><label>契約終了日</label><input class="fi" id="nw-contract-end" type="date"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>連載開始日</label><input class="fi" id="nw-start" type="date"/></div>
+      <div class="form-group"><label>連載開始話数</label><input class="fi" id="nw-startep" type="number" placeholder="1" value="1"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>バッファ目標（FIX話数）</label><input class="fi" id="nw-buf" type="number" value="15"/></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-sm" onclick="toggleAddForm()">キャンセル</button>
+      <button class="btn btn-primary btn-sm" onclick="addWork()">追加</button>
+    </div>
+  </div>
+  <div id="works-list"></div>
+</div>
+
+<!-- 収支管理 -->
+<div class="page" id="page-finance">
+  <div class="sec-hdr"><span class="sec-title">収支管理</span></div>
+  <!-- フィルター＆ソートバー -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:9px;border:1px solid #e5e5e5;">
+    <span style="font-size:11px;color:#666;">絞り込み：</span>
+    <div class="fin-filter-bar" id="fin-fbar" style="margin:0;gap:6px;"></div>
+    <span style="font-size:11px;color:#666;margin-left:10px;">並び替え：</span>
+    <select id="fin-sort" onchange="renderFinSel()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
+      <option value="default">登録順</option>
+      <option value="top-rev">売上順（高い順）</option>
+      <option value="start-date-new">連載開始日順（新しい順）</option>
+      <option value="start-date-old">連載開始日順（古い順）</option>
+      <option value="eps">話数順（多い順）</option>
+      <option value="mg">MG順（高い順）</option>
+    </select>
+  </div>
+  <!-- 作品リスト -->
+  <div id="fin-list-view" class="fin-list" style="margin-bottom:16px;"></div>
+  <!-- 詳細パネル -->
+  <div id="fin-content" class="hidden">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-sm" onclick="closeFinDetail()">← 一覧に戻る</button>
+      <span id="fin-detail-title" style="font-size:14px;font-weight:700;"></span>
+    </div>
+    <div class="metric-grid" id="fin-metrics"></div>
+    <div class="sub-tab-bar">
+      <button class="sub-tab active" onclick="switchSubTab('cost',this)">制作費用</button>
+      <button class="sub-tab" onclick="switchSubTab('revenue',this)">収益</button>
+      <button class="sub-tab" onclick="switchSubTab('graph',this)">収支グラフ</button>
+    </div>
+    <div id="sub-cost" class="sub-page">
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#444;" id="fin-info"></div>
+        <div class="cost-head">
+          <div class="col-h" style="text-align:left;">項目</div>
+          <div class="col-h">金額</div>
+          <div class="col-h">合計</div>
+          <div class="col-h">担当</div>
+        </div>
+        <div id="cost-inputs"></div>
+      </div>
+    </div>
+    <div id="sub-revenue" class="sub-page hidden">
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">月別収益</div>
+        <div style="overflow-x:auto;">
+          <table class="month-table">
+            <thead><tr>
+              <th style="text-align:left;">年月</th>
+              <th>配信売上</th><th>配信収益</th><th>パートナーRS(%)</th><th>自社収益</th><th></th>
+            </tr></thead>
+            <tbody id="rev-tbody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <input class="fi" id="new-month" type="month" style="width:150px;font-size:12px;padding:5px 8px;"/>
+          <button class="btn btn-sm btn-primary" onclick="addMonthRow()">+ 月を追加</button>
+        </div>
+        <div class="pl-sum" id="rev-pl"></div>
+      </div>
+    </div>
+    <div id="sub-graph" class="sub-page hidden">
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">累計収支グラフ</div>
+        <div class="graph-wrap"><canvas id="pl-chart"></canvas></div>
+        <div id="be-box"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<script>
+const STAGES=['原稿納品','翻訳','翻訳チェック','写植','FIX','連載データ作成'];
+const STAGE_COLORS=['#94a3b8','#3b82f6','#a855f7','#f59e0b','#ef4444','#22c55e'];
+
+// ============================================================
+// Google Sheets 連携設定
+// Apps Script をデプロイしたら、下記の '' 内にURLを貼り付けてください
+// ============================================================
+let SHEETS_URL = localStorage.getItem('sheetsUrl') || '';
+let syncEnabled = !!SHEETS_URL;
+let syncStatus = 'idle'; // idle | syncing | ok | error
+let syncInterval = null;
+const SYNC_INTERVAL_MS = 30000; // 30秒ごとに自動同期
+
+async function sheetsGet(params){
+  if(!SHEETS_URL) return {error:'No URL'};
+  const url=new URL(SHEETS_URL);
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,typeof v==='object'?encodeURIComponent(JSON.stringify(v)):v));
+  const r=await fetch(url.toString(),{redirect:'follow'});
+  const text=await r.text();
+  try{return JSON.parse(text);}catch(e){throw new Error('レスポンスのパースに失敗: '+text.slice(0,100));}
+}
+
+// GETのみ使用（POSTはCORSで弾かれるため）
+async function sheetsPost(body){
+  if(!SHEETS_URL) return {error:'No URL'};
+  const {action,...rest}=body;
+  const params={action};
+  // dataやworkなどはencodeURIComponentでGETパラメータに変換
+  if(rest.data) params.data=encodeURIComponent(JSON.stringify(rest.data));
+  if(rest.work) params.work=encodeURIComponent(JSON.stringify(rest.work));
+  if(rest.id!=null) params.id=rest.id;
+  if(rest.deletedAt) params.deletedAt=rest.deletedAt;
+  return sheetsGet(params);
+}
+
+function setSyncStatus(status, msg=''){
+  syncStatus=status;
+  const el=document.getElementById('sync-status');
+  if(!el)return;
+  const map={
+    idle:   {icon:'☁️', text:'未接続',      color:'#888'},
+    syncing:{icon:'🔄', text:'同期中...',    color:'#ca8a04'},
+    ok:     {icon:'✅', text:'同期済み',     color:'#166534'},
+    error:  {icon:'❌', text:msg||'エラー', color:'#991b1b'}
+  };
+  const s=map[status];
+  el.innerHTML=`<span style="font-size:11px;color:${s.color};display:flex;align-items:center;gap:4px;">${s.icon} ${s.text}</span>`;
+}
+
+async function syncFromSheets(){
+  if(!syncEnabled||!SHEETS_URL)return;
+  setSyncStatus('syncing');
+  try{
+    const data=await sheetsGet({action:'getAll'});
+    if(data.error) throw new Error(data.error);
+    works=data.works||works;
+    trash=data.trash||trash;
+    nextId=Math.max(5,...works.map(w=>w.id+1));
+    renderWorks();
+    if(document.getElementById('page-finance').classList.contains('active'))renderFinSel();
+    updateTrashBadge();
+    setSyncStatus('ok');
+  }catch(e){
+    setSyncStatus('error', e.message.slice(0,20));
+  }
+}
+
+async function syncToSheets(){
+  if(!syncEnabled||!SHEETS_URL)return;
+  setSyncStatus('syncing');
+  try{
+    const res=await sheetsPost({action:'saveAll',data:{works,trash}});
+    if(res.error) throw new Error(res.error);
+    setSyncStatus('ok');
+  }catch(e){
+    setSyncStatus('error', e.message.slice(0,20));
+  }
+}
+
+function startAutoSync(){
+  if(syncInterval)clearInterval(syncInterval);
+  syncInterval=setInterval(syncFromSheets, SYNC_INTERVAL_MS);
+}
+
+async function setupSheets(){
+  const url=prompt('Google Apps Script のデプロイURLを入力してください：\n\n（設定を解除するには空のままOKを押してください）', SHEETS_URL);
+  if(url===null)return; // キャンセル
+  SHEETS_URL=url.trim();
+  localStorage.setItem('sheetsUrl',SHEETS_URL);
+  syncEnabled=!!SHEETS_URL;
+  if(!syncEnabled){
+    setSyncStatus('idle');
+    if(syncInterval)clearInterval(syncInterval);
+    showToast('info','Google Sheets 連携を解除しました');
+    return;
+  }
+  setSyncStatus('syncing');
+  try{
+    const res=await sheetsGet({action:'ping'});
+    if(res.error)throw new Error(res.error);
+    showToast('success','✅ 接続成功！データを読み込みます...');
+    document.getElementById('btn-sync-now').style.display='';
+    await syncFromSheets();
+    startAutoSync();
+  }catch(e){
+    setSyncStatus('error');
+    showToast('error','❌ 接続失敗：URLを確認してください\n'+e.message);
+  }
+}
+
+function showToast(type, msg){
+  const colors={success:'#f0fdf4|#bbf7d0|#166534',error:'#fff5f5|#fecaca|#991b1b',info:'#eff6ff|#bfdbfe|#1d4ed8'};
+  const [bg,border,text]=(colors[type]||colors.info).split('|');
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${bg};border:1px solid ${border};border-radius:8px;padding:10px 18px;font-size:13px;color:${text};z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,0.1);max-width:80vw;text-align:center;white-space:pre-line;`;
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// データ変更をSheetsに自動保存するラッパー
+async function afterChange(){
+  renderWorks();
+  if(syncEnabled) await syncToSheets();
+}
+
+let works=[
+  {id:1,title:'恋するモンスター',genre:'ロマンス',partner:'A出版',totalEps:80,contractDate:'2026-01-05',contractEndDate:'2028-01-05',startDate:'2026-05-01',startEp:1,bufferTarget:15,
+   progress:[[50,40,32,28,20,15],[65,55,45,38,30,22]],histDates:['2026-03-09','2026-03-23'],
+   costs:{mg:{amount:5000000,currency:'KRW',rateDate:'2026-01-05',rateUsed:0.11},
+     translation:{perEp:8000},transCheck:{perEp:5000,type:'outsource',hrRate:3000,hrs:0.5},
+     typesetting:{perEp:6000,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.75},cover:{amount:80000}},
+   months:[{ym:'2026-05',gross:120000,delivery:84000,partnerRS:50},{ym:'2026-06',gross:98000,delivery:68600,partnerRS:50}]},
+  {id:2,title:'転生したら魔王の娘',genre:'ファンタジー',partner:'B社',totalEps:120,contractDate:'2026-01-20',contractEndDate:'2029-01-20',startDate:'2026-07-01',startEp:1,bufferTarget:15,
+   progress:[[30,22,15,10,8,5],[45,38,30,25,20,15]],histDates:['2026-03-09','2026-03-23'],
+   costs:{mg:{amount:80000000,currency:'KRW',rateDate:'2026-01-20',rateUsed:0.11},
+     translation:{perEp:9000},transCheck:{perEp:0,type:'inhouse',hrRate:3000,hrs:0.5},
+     typesetting:{perEp:7000,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:1},cover:{amount:100000}},
+   months:[]},
+  {id:3,title:'サイレント・ヒーロー',genre:'アクション',partner:'A出版',totalEps:60,contractDate:'2026-02-10',contractEndDate:'2028-02-10',startDate:'2026-08-01',startEp:1,bufferTarget:15,
+   progress:[[15,10,7,5,3,0],[25,18,12,9,6,0]],histDates:['2026-03-09','2026-03-23'],
+   costs:{mg:{amount:3000000,currency:'JPY',rateDate:'2026-02-10',rateUsed:1},
+     translation:{perEp:7500},transCheck:{perEp:4500,type:'outsource',hrRate:3000,hrs:0.75},
+     typesetting:{perEp:0,type:'inhouse',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.5},cover:{amount:60000}},
+   months:[]},
+  {id:4,title:'クローンハート',genre:'SF',partner:'B社',totalEps:50,contractDate:'2026-01-15',contractEndDate:'2028-01-15',startDate:'2026-06-15',startEp:1,bufferTarget:15,
+   progress:[[30,25,20,18,15,10],[42,36,30,26,20,14]],histDates:['2026-03-09','2026-03-23'],
+   costs:{mg:{amount:2000000,currency:'JPY',rateDate:'2026-01-15',rateUsed:1},
+     translation:{perEp:8000},transCheck:{perEp:5000,type:'outsource',hrRate:3000,hrs:0.5},
+     typesetting:{perEp:6000,type:'outsource',hrRate:3000,hrs:0.75},fix:{hrRate:3000,hrs:0.5},cover:{amount:75000}},
+   months:[{ym:'2026-07',gross:200000,delivery:140000,partnerRS:45},{ym:'2026-08',gross:220000,delivery:154000,partnerRS:45},{ym:'2026-09',gross:240000,delivery:168000,partnerRS:45}]}
+];
+let nextId=5,activeSub='cost',plChart=null;
+let weekCharts={};
+
+function today(){return new Date().toISOString().slice(0,10);}
+function mgJPY(w){const m=w.costs.mg;return m.currency==='JPY'?m.amount||0:Math.round((m.amount||0)*(m.rateUsed||0.11));}
+function calcTotalCost(w){
+  const ep=w.totalEps,c=w.costs,mg=mgJPY(w);
+  let v=(c.translation.perEp||0)*ep;
+  v+=c.transCheck.type==='inhouse'?(c.transCheck.hrRate||0)*(c.transCheck.hrs||0)*ep:(c.transCheck.perEp||0)*ep;
+  v+=c.typesetting.type==='inhouse'?(c.typesetting.hrRate||0)*(c.typesetting.hrs||0)*ep:(c.typesetting.perEp||0)*ep;
+  v+=(c.fix.hrRate||0)*(c.fix.hrs||0)*ep+(c.cover.amount||0);
+  return{mg,varC:v,total:mg+v};
+}
+function calcRevSummary(w){
+  const ms=w.months||[];
+  return{gross:ms.reduce((a,m)=>a+(m.gross||0),0),delivery:ms.reduce((a,m)=>a+(m.delivery||0),0),
+    net:ms.reduce((a,m)=>a+Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100)),0)};
+}
+
+/* --- tabs --- */
+function switchTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+tab).classList.add('active');
+  if(tab==='finance'){buildFinFilter();renderFinSel();}
+}
+function switchSubTab(tab,el){
+  activeSub=tab;
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sub-page').forEach(p=>p.classList.add('hidden'));
+  el.classList.add('active');
+  document.getElementById('sub-'+tab).classList.remove('hidden');
+  const w=selWork();if(!w)return;
+  if(tab==='graph')renderGraph(w);
+  else if(tab==='cost')renderCostInputs(w);
+  else{renderRevTable(w);renderRevPL(w);}
+}
+
+/* --- Progress filters & render --- */
+function buildProgFilters(){
+  const ws=document.getElementById('f-work'),wc=ws.value;
+  ws.innerHTML='<option value="all">すべて</option>'+works.map(w=>`<option value="${w.id}"${w.id==wc?' selected':''}>${w.title}</option>`).join('');
+  const ps=document.getElementById('f-partner'),pc=ps.value;
+  const pts=[...new Set(works.map(w=>w.partner||'').filter(Boolean))];
+  ps.innerHTML='<option value="all">すべて</option>'+pts.map(p=>`<option value="${p}"${p===pc?' selected':''}>${p}</option>`).join('');
+}
+function toggleAddForm(){document.getElementById('add-form').classList.toggle('hidden');}
+function addWork(){
+  const t=document.getElementById('nw-title').value.trim();if(!t)return;
+  works.push({id:nextId++,title:t,genre:document.getElementById('nw-genre').value.trim(),
+    partner:document.getElementById('nw-partner').value.trim(),
+    totalEps:parseInt(document.getElementById('nw-total').value)||50,
+    contractDate:document.getElementById('nw-contract').value,
+    contractEndDate:document.getElementById('nw-contract-end').value,
+    startDate:document.getElementById('nw-start').value,
+    startEp:parseInt(document.getElementById('nw-startep').value)||1,
+    bufferTarget:parseInt(document.getElementById('nw-buf').value)||15,
+    progress:[[0,0,0,0,0,0]],histDates:[today()],
+    costs:{mg:{amount:0,currency:'JPY',rateDate:'',rateUsed:1},translation:{perEp:0},
+      transCheck:{perEp:0,type:'outsource',hrRate:3000,hrs:0.5},
+      typesetting:{perEp:0,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.5},cover:{amount:0}},months:[]});
+  document.getElementById('nw-title').value='';
+  document.getElementById('add-form').classList.add('hidden');
+  renderWorks();
+  if(syncEnabled) syncToSheets();
+}
+let trash=[]; // 削除済み作品バックアップ
+
+function removeWork(id){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  const existingConfirm=document.getElementById('confirm-delete-'+id);
+  if(existingConfirm){
+    // ゴミ箱に移動（削除日時を記録）
+    trash.unshift({...w,deletedAt:today()});
+    if(trash.length>10)trash.pop();
+    works=works.filter(x=>x.id!==id);
+    renderWorks();renderFinSel();updateTrashBadge();
+    if(syncEnabled) syncToSheets();
+    return;
+  }
+  // 確認UIを表示
+  const btn=document.querySelector(`button[onclick="removeWork(${id})"]`);
+  if(!btn)return;
+  btn.style.display='none';
+  const box=document.createElement('div');
+  box.id='confirm-delete-'+id;
+  box.style.cssText='display:flex;align-items:center;gap:6px;';
+  box.innerHTML=`<span style="font-size:11px;color:#991b1b;white-space:nowrap;">本当に削除しますか？</span>
+    <button class="btn btn-sm btn-danger" onclick="removeWork(${id})" style="font-size:11px;">はい</button>
+    <button class="btn btn-sm" onclick="document.getElementById('confirm-delete-${id}').remove();document.querySelector('[onclick=\\'removeWork(${id})\\']').style.display='';" style="font-size:11px;">いいえ</button>`;
+  btn.parentNode.insertBefore(box,btn.nextSibling);
+}
+
+function updateTrashBadge(){
+  const badge=document.getElementById('trash-count');
+  if(!badge)return;
+  if(trash.length>0){
+    badge.textContent=trash.length;
+    badge.style.display='inline';
+  } else {
+    badge.style.display='none';
+  }
+}
+
+function toggleTrash(){
+  const panel=document.getElementById('trash-panel');
+  panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden'))renderTrash();
+}
+
+function renderTrash(){
+  const list=document.getElementById('trash-list');
+  if(!trash.length){
+    list.innerHTML='<div style="font-size:12px;color:#888;text-align:center;padding:8px 0;">削除済み作品はありません</div>';
+    return;
+  }
+  list.innerHTML=trash.map((w,i)=>{
+    const fix=w.progress[w.progress.length-1][4]||0;
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#fff;border-radius:8px;border:1px solid #fecaca;margin-bottom:7px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;">${w.title}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px;">
+          ${w.genre||'–'}　${w.partner||'–'}　全${w.totalEps}話　FIX:${fix}話
+          <span style="margin-left:8px;color:#bbb;">削除日：${w.deletedAt}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm btn-primary" onclick="restoreWork(${i})" style="font-size:11px;">復元</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteFromTrash(${i})" style="font-size:11px;">完全削除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function restoreWork(i){
+  const w=trash[i];
+  delete w.deletedAt;
+  works.push(w);
+  trash.splice(i,1);
+  renderWorks();renderFinSel();renderTrash();updateTrashBadge();
+  if(syncEnabled) syncToSheets();
+}
+
+function deleteFromTrash(i){
+  const w=trash[i];
+  const box=document.createElement('div');
+  box.style.cssText='font-size:11px;color:#991b1b;display:inline-flex;align-items:center;gap:6px;';
+  // 直接削除（完全削除は二度と戻せない旨を表示）
+  const listItem=document.getElementById('trash-list').children[i];
+  if(!listItem)return;
+  // 確認テキストをリストアイテム末尾に追加
+  const confirmBox=document.createElement('div');
+  confirmBox.style.cssText='display:flex;align-items:center;gap:6px;margin-top:6px;';
+  confirmBox.innerHTML=`<span style="font-size:11px;color:#991b1b;">完全削除します。元に戻せません。</span>
+    <button class="btn btn-sm btn-danger" onclick="trash.splice(${i},1);renderTrash();updateTrashBadge();" style="font-size:11px;">はい、削除</button>
+    <button class="btn btn-sm" onclick="this.parentNode.remove();" style="font-size:11px;">キャンセル</button>`;
+  listItem.appendChild(confirmBox);
+}
+
+/* --- Edit work inline panel --- */
+function openEditModal(id){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  document.getElementById('e-wid').value=id;
+  document.getElementById('e-title').value=w.title||'';
+  document.getElementById('e-genre').value=w.genre||'';
+  document.getElementById('e-partner').value=w.partner||'';
+  document.getElementById('e-total').value=w.totalEps||'';
+  document.getElementById('e-contract').value=w.contractDate||'';
+  document.getElementById('e-contract-end').value=w.contractEndDate||'';
+  document.getElementById('e-start').value=w.startDate||'';
+  document.getElementById('e-startep').value=w.startEp||1;
+  document.getElementById('e-buf').value=w.bufferTarget||15;
+  const panel=document.getElementById('edit-panel');
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeEditPanel(){
+  document.getElementById('edit-panel').classList.add('hidden');
+}
+function closeEditModal(e){closeEditPanel();}
+function saveEditWork(){
+  const id=parseInt(document.getElementById('e-wid').value);
+  const w=works.find(x=>x.id===id);if(!w)return;
+  w.title=document.getElementById('e-title').value.trim()||w.title;
+  w.genre=document.getElementById('e-genre').value.trim();
+  w.partner=document.getElementById('e-partner').value.trim();
+  w.totalEps=parseInt(document.getElementById('e-total').value)||w.totalEps;
+  w.contractDate=document.getElementById('e-contract').value;
+  w.contractEndDate=document.getElementById('e-contract-end').value;
+  w.startDate=document.getElementById('e-start').value;
+  w.startEp=parseInt(document.getElementById('e-startep').value)||1;
+  w.bufferTarget=parseInt(document.getElementById('e-buf').value)||15;
+  closeEditPanel();
+  renderWorks();
+  if(document.getElementById('page-finance').classList.contains('active'))renderFinSel();
+  if(syncEnabled) syncToSheets();
+}
+
+function renderWorks(){
+  buildProgFilters();
+  const wv=document.getElementById('f-work').value;
+  const pv=document.getElementById('f-partner').value;
+  const sv=document.getElementById('f-status').value;
+  let list=works.filter(w=>{
+    if(wv!=='all'&&w.id!=wv)return false;
+    if(pv!=='all'&&(w.partner||'')!==pv)return false;
+    if(sv==='fix-ng'){const f=w.progress[w.progress.length-1][4]||0;if(f>=w.totalEps)return false;}
+    if(sv==='fix-ok'){const f=w.progress[w.progress.length-1][4]||0;if(f<w.totalEps)return false;}
+    return true;
+  });
+  const c=document.getElementById('works-list');
+  if(!list.length){c.innerHTML='<div style="text-align:center;padding:2rem;color:#888;">該当する作品がありません</div>';return;}
+  c.innerHTML=list.map(workCard).join('');
+  list.forEach(w=>{
+    if(w.progress.length>1)setTimeout(()=>drawWeekChart(w),0);
+    if(w.contractDate&&w.startDate)setTimeout(()=>drawSchedChart(w),0);
+  });
+}
+
+function workCard(w){
+  const cur=w.progress[w.progress.length-1];
+  const prev=w.progress.length>1?w.progress[w.progress.length-2]:null;
+  const rows=STAGES.map((s,i)=>{
+    const ep=cur[i]||0,pct=w.totalEps?Math.round(ep/w.totalEps*100):0;
+    const sc=ep>=w.totalEps?'done':ep>0?'inp':'ns';
+    const st=ep>=w.totalEps?'完了':ep>0?'進行中':'未着手';
+    const diff=prev!=null?(ep-(prev[i]||0)):null;
+    const dh=diff!=null?`<span class="${diff>0?'diff-pos':diff<0?'diff-neg':''}" style="font-size:10px;margin-left:3px;">${diff>0?'+':''}${diff}</span>`:'';
+    const bc=ep>=w.totalEps?'#16a34a':ep>0?'#ca8a04':'#e2e8f0';
+    return`<tr><td><span class="pill ${sc}">${s}</span></td>
+      <td><input class="ep-in" type="number" min="0" max="${w.totalEps}" value="${ep}" onchange="updProg(${w.id},${i},this.value)"/>${dh}</td>
+      <td style="color:#888;">${w.totalEps}</td>
+      <td><div style="display:flex;align-items:center;gap:5px;"><div style="flex:1;height:4px;background:#f0f0f0;border-radius:2px;min-width:60px;"><div style="height:4px;border-radius:2px;background:${bc};width:${pct}%;"></div></div><span style="font-size:10px;color:#888;">${pct}%</span></div></td>
+      <td><span class="pill ${sc}" style="font-size:10px;">${st}</span></td></tr>`;
+  }).join('');
+  const wch=w.progress.length>1?`<div class="week-chart-wrap"><canvas id="wc-${w.id}"></canvas></div>`:'';
+  return`<div class="card">
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+      <div class="work-badge">${w.title.slice(0,2)}</div>
+      <div style="flex:1;">
+        <div class="work-title-text" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px;" onclick="openEditModal(${w.id})" title="クリックして編集">${w.title} ✏️</div>
+        <div class="work-meta">ジャンル：${w.genre||'–'}　パートナー：${w.partner||'–'}　全${w.totalEps}話<br>契約日：${w.contractDate||'–'}　契約終了日：${w.contractEndDate||'–'}　連載開始：${w.startDate||'–'}（第${w.startEp||1}話〜）</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="toggleHist(${w.id})">制作管理</button>
+        <button class="btn btn-sm btn-danger" onclick="removeWork(${w.id})">削除</button>
+      </div>
+    </div>
+    <table class="ptable"><thead><tr>
+      <th style="min-width:110px;">工程</th><th>完了話数</th><th>全話数</th><th style="min-width:120px;">進捗</th><th>状態</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    ${buildSched(w)}
+    <div class="hist-panel hidden" id="hist-${w.id}">${buildHistPanel(w)}</div>
+    ${wch}
+  </div>`;
+}
+
+function buildSched(w){
+  if(!w.startDate)return'';
+  const now=new Date(),start=new Date(w.startDate),bd=new Date(start);
+  bd.setMonth(bd.getMonth()-1);
+  const fix=w.progress[w.progress.length-1][4]||0,needed=w.bufferTarget||15;
+  const days=Math.ceil((bd-now)/(86400000)),wks=Math.max(0,Math.ceil(days/7));
+  const short=Math.max(0,needed-fix),pw=wks>0?Math.ceil(short/wks):short,ok=fix>=needed;
+
+  // 連載終了日計算: 連載開始日 + (全話数 - 連載開始話数) 週
+  const contractD=w.contractDate?new Date(w.contractDate):null;
+  const startEp=w.startEp||1;
+  const remainEps=w.totalEps-startEp; // 連載開始以降の残り話数
+  const endDate=contractD&&w.startDate&&remainEps>=0?new Date(start.getTime()+remainEps*7*86400000):null;
+
+  return`<div class="sched-box">
+    <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px;">スケジュール管理</div>
+    <div class="sched-row"><span>バッファ目標（FIX）</span><span>${needed}話</span></div>
+    <div class="sched-row"><span>現在のFIX完了</span><span>${fix}話</span></div>
+    <div class="sched-row"><span>バッファ確保期限（連載1ヶ月前）</span><span>${bd.toLocaleDateString('ja-JP')}</span></div>
+    <div class="sched-row"><span>残り週数</span><span>${wks}週間</span></div>
+    <div class="sched-row"><span>1週あたり必要FIX話数</span><span class="${ok?'ok':'warn'}">${ok?'✓ 達成済み':pw+'話/週 必要'}</span></div>
+    ${endDate?`<div class="sched-row"><span>完結予定日（週1話）</span><span>${endDate.toLocaleDateString('ja-JP')}</span></div>`:''}
+  </div>
+  ${contractD&&w.startDate?`<div class="week-chart-wrap" style="height:180px;margin-top:10px;"><canvas id="sc-${w.id}"></canvas></div>`:''}`;
+}
+
+function buildHistPanel(w){
+  let html='<div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px;">週次記録</div>';
+  w.histDates.forEach((d,si)=>{
+    const snap=w.progress[si];
+    const isLatest=si===w.progress.length-1;
+    html+=`<div style="margin-bottom:12px;padding:10px 12px;background:${isLatest?'#eef5ff':'#fafafa'};border-radius:8px;border:1px solid ${isLatest?'#c7d9ff':'#eee'};">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="date" value="${d}" style="padding:2px 6px;font-size:12px;font-weight:700;color:${isLatest?'#1d4ed8':'#555'};border:1px solid ${isLatest?'#93c5fd':'#ccc'};border-radius:5px;background:transparent;"
+            onchange="editSnapDate(${w.id},${si},this.value)"/>
+          ${isLatest?'<span style="font-size:11px;color:#1d4ed8;font-weight:700;">【最新】</span>':''}
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="delSnap(${w.id},${si})">削除</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+        ${STAGES.map((s,stg)=>`<div style="font-size:11px;">
+          <div style="color:#888;margin-bottom:2px;">${s}</div>
+          <input class="hist-ep-in" type="number" min="0" max="${w.totalEps}" value="${snap[stg]||0}"
+            onchange="editSnap(${w.id},${si},${stg},this.value)" style="width:52px;"/>
+          <span style="font-size:10px;color:#aaa;">/ ${w.totalEps}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  html+=`<div style="display:flex;gap:8px;margin-top:4px;">
+    <button class="btn btn-sm btn-primary" onclick="recordWeek(${w.id})">今週分を記録</button>
+    <button class="btn btn-sm btn-success" onclick="applyLatest(${w.id})">記録完了・最新データに反映</button>
+  </div>`;
+  return html;
+}
+
+function toggleHist(id){document.getElementById('hist-'+id).classList.toggle('hidden');}
+// デバウンス付き自動保存（入力中に連続で叩かない）
+let syncDebounceTimer=null;
+function debouncedSync(){
+  if(!syncEnabled) return;
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer=setTimeout(()=>syncToSheets(), 1500);
+}
+
+function recordWeek(id){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  w.progress.push([...w.progress[w.progress.length-1]]);
+  w.histDates.push(today());
+  if(w.progress.length>10){w.progress.shift();w.histDates.shift();}
+  renderWorks();
+  setTimeout(()=>document.getElementById('hist-'+id)&&document.getElementById('hist-'+id).classList.remove('hidden'),50);
+  if(syncEnabled) syncToSheets();
+}
+function editSnap(wid,si,stg,val){const w=works.find(x=>x.id===wid);if(w){w.progress[si][stg]=parseInt(val)||0;debouncedSync();}}
+function editSnapDate(wid,si,val){const w=works.find(x=>x.id===wid);if(w){w.histDates[si]=val;debouncedSync();}}
+function delSnap(wid,si){
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  if(w.progress.length<=1){alert('最低1件の記録が必要です');return;}
+  w.progress.splice(si,1);w.histDates.splice(si,1);
+  renderWorks();
+  setTimeout(()=>document.getElementById('hist-'+wid)&&document.getElementById('hist-'+wid).classList.remove('hidden'),50);
+  if(syncEnabled) syncToSheets();
+}
+function applyLatest(wid){
+  renderWorks();
+  setTimeout(()=>document.getElementById('hist-'+wid)&&document.getElementById('hist-'+wid).classList.remove('hidden'),50);
+  if(syncEnabled) syncToSheets();
+}
+function updProg(id,si,val){const w=works.find(x=>x.id===id);if(w){w.progress[w.progress.length-1][si]=parseInt(val)||0;debouncedSync();}}
+
+function drawWeekChart(w){
+  const el=document.getElementById('wc-'+w.id);if(!el)return;
+  if(weekCharts[w.id]){weekCharts[w.id].destroy();delete weekCharts[w.id];}
+
+  const msPerWeek=7*86400000;
+  const nowD=new Date();
+  const fmt=(d)=>d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+
+  // 週グリッドの起点：今日から8週前〜4週後（計12週）
+  const totalWeeks=12;
+  const backWeeks=8;
+  // 週の月曜日に揃える
+  const mondayOffset=(nowD.getDay()+6)%7; // 今日が月曜から何日後か
+  const thisMon=new Date(nowD.getTime()-mondayOffset*86400000);
+  thisMon.setHours(0,0,0,0);
+
+  const gridStart=new Date(thisMon.getTime()-backWeeks*msPerWeek);
+  const gridEnd=new Date(thisMon.getTime()+(totalWeeks-backWeeks)*msPerWeek);
+
+  // 週グリッドを生成
+  const gridDates=[];
+  for(let wk=0;wk<=totalWeeks;wk++){
+    gridDates.push(new Date(gridStart.getTime()+wk*msPerWeek));
+  }
+
+  // histDatesを週グリッドにスナップして各工程値をマッピング
+  // 各グリッド週に対して、その週以前の最新の記録を使う
+  const histParsed=w.histDates.map((d,i)=>({
+    ms:new Date(d).getTime(),
+    snap:w.progress[i]
+  })).sort((a,b)=>a.ms-b.ms);
+
+  const stageData=STAGES.map(()=>gridDates.map(()=>null));
+
+  gridDates.forEach((gd,gi)=>{
+    // このグリッド週以前で最も近い記録を探す
+    const gdMs=gd.getTime()+msPerWeek; // 週末まで含める
+    const past=histParsed.filter(h=>h.ms<=gdMs);
+    if(past.length>0){
+      const rec=past[past.length-1];
+      STAGES.forEach((_,si)=>{
+        stageData[si][gi]=rec.snap[si]||0;
+      });
+    }
+  });
+
+  // ラベル生成（週ごと、特定日のみ表示）
+  const labels=gridDates.map((d,i)=>{
+    const isNow=i===backWeeks;
+    const isFirst=i===0;
+    const isLast=i===totalWeeks;
+    if(isNow)   return`今週\n${fmt(d)}`;
+    if(isFirst||isLast||i%4===0) return fmt(d);
+    return'';
+  });
+
+  const datasets=STAGES.map((stage,si)=>({
+    label:stage,
+    data:stageData[si],
+    borderColor:STAGE_COLORS[si],
+    backgroundColor:STAGE_COLORS[si]+'18',
+    tension:0.3,
+    fill:false,
+    pointRadius:(ctx)=>stageData[si][ctx.dataIndex]!==null?3:0,
+    pointBackgroundColor:STAGE_COLORS[si],
+    spanGaps:true
+  }));
+
+  weekCharts[w.id]=new Chart(el.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{font:{size:10},boxWidth:10,padding:8}},
+        tooltip:{callbacks:{
+          title:(items)=>fmt(gridDates[items[0].dataIndex]),
+          label:(ctx)=>`${ctx.dataset.label}：${ctx.parsed.y??'–'}話`
+        }}
+      },
+      scales:{
+        y:{min:0,max:w.totalEps,
+          ticks:{font:{size:9},stepSize:Math.max(1,Math.ceil(w.totalEps/5))},
+          grid:{color:'rgba(0,0,0,0.05)'}},
+        x:{ticks:{
+            font:{size:9},maxRotation:0,autoSkip:false,
+            callback:(v,i)=>(labels[i]||'').split('\n')
+          },
+          grid:{
+            color:(ctx)=>ctx.index===backWeeks?'rgba(234,179,8,0.5)':'rgba(0,0,0,0.04)',
+            lineWidth:(ctx)=>ctx.index===backWeeks?2:1
+          }}
+      }
+    }
+  });
+}
+
+let schedCharts={};
+function drawSchedChart(w){
+  const el=document.getElementById('sc-'+w.id);if(!el)return;
+  if(schedCharts[w.id]){schedCharts[w.id].destroy();delete schedCharts[w.id];}
+
+  const msDay=86400000, msWeek=7*msDay;
+  const contractD=new Date(w.contractDate);
+  const startD=new Date(w.startDate);
+  const startEp=w.startEp||1;
+  const remainEps=w.totalEps-startEp;
+  const endD=new Date(startD.getTime()+remainEps*msWeek);
+  const nowD=new Date();
+  nowD.setHours(0,0,0,0);
+  const fmt=(d)=>d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+
+  // ── ウィンドウ：今日の前4週〜後8週 ──
+  const halfBack=4, halfFwd=8;
+  let winStart=new Date(nowD.getTime()-halfBack*msWeek);
+  if(winStart<contractD) winStart=new Date(contractD.getTime());
+  let winEnd=new Date(nowD.getTime()+halfFwd*msWeek);
+  if(winEnd>endD) winEnd=new Date(endD.getTime());
+  if(winEnd<=winStart) winEnd=new Date(winStart.getTime()+halfFwd*msWeek);
+
+  // ── x軸ポイント：週次グリッド（月曜起点）+ histDates をマージして重複排除 ──
+  const snap=new Set(); // ms値のセット
+
+  // 週グリッド（winStart〜winEnd を1週ずつ）
+  for(let t=winStart.getTime();t<=winEnd.getTime();t+=msWeek) snap.add(t);
+
+  // histDates：最も近いグリッド点にスナップ（±3日）ではなく実際の日付をそのまま追加
+  const histParsed=w.histDates.map((d,i)=>({
+    ms:new Date(d).setHours(0,0,0,0),
+    snap:w.progress[i]
+  }));
+  histParsed.forEach(h=>{
+    if(h.ms>=winStart.getTime()-msWeek&&h.ms<=winEnd.getTime()+msWeek) snap.add(h.ms);
+  });
+
+  // 主要日付（契約日・連載開始・連載終了）もウィンドウ範囲なら追加
+  [contractD,startD,endD].forEach(d=>{
+    const ms=d.setHours?new Date(d).setHours(0,0,0,0):d;
+    if(ms>=winStart.getTime()&&ms<=winEnd.getTime()) snap.add(ms);
+  });
+
+  // ソート＆重複排除（±1日以内の点は一つにまとめる）
+  const sorted=Array.from(snap).sort((a,b)=>a-b);
+  const deduped=[];
+  sorted.forEach(ms=>{
+    if(!deduped.length||ms-deduped[deduped.length-1]>msDay) deduped.push(ms);
+  });
+  const xPoints=deduped.map(ms=>new Date(ms));
+
+  // ── FIX実績マッピング ──
+  const fixHistory=histParsed.slice().sort((a,b)=>a.ms-b.ms);
+  const fixEp=fixHistory.length>0?fixHistory[fixHistory.length-1].snap[4]||0:0;
+
+  const planData=[], fixData=[], labels=[];
+
+  xPoints.forEach(d=>{
+    const dMs=d.getTime();
+
+    // ラベル（優先順位：連載終了＞連載開始＞今週、重複しないよう厳密に判定）
+    const diffEnd=Math.abs(dMs-new Date(endD).setHours(0,0,0,0));
+    const diffStart=Math.abs(dMs-new Date(startD).setHours(0,0,0,0));
+    const diffNow=Math.abs(dMs-nowD.getTime());
+    const diffContract=Math.abs(dMs-new Date(contractD).setHours(0,0,0,0));
+    let lbl='';
+    if(diffEnd<msDay)           lbl=`連載終了\n${fmt(endD)}`;
+    else if(diffStart<msDay)    lbl=`連載開始\n${fmt(startD)}`;
+    else if(diffNow<msDay)      lbl=`今週\n${fmt(nowD)}`;
+    else if(diffContract<msDay) lbl=`契約日\n${fmt(contractD)}`;
+    labels.push(lbl);
+
+    // 連載計画話数
+    let plan=0;
+    if(dMs<new Date(startD).setHours(0,0,0,0)) plan=0;
+    else if(dMs>=new Date(endD).setHours(0,0,0,0)) plan=w.totalEps;
+    else plan=Math.min(startEp+Math.round((dMs-new Date(startD).setHours(0,0,0,0))/msWeek),w.totalEps);
+    planData.push(plan);
+
+    // FIX実績：±1日以内に記録があれば値、なければnull
+    const match=fixHistory.find(h=>Math.abs(h.ms-dMs)<=msDay);
+    fixData.push(match!=null?match.snap[4]||0:null);
+  });
+
+  // グリッド強調インデックス
+  const idxOf=(target)=>xPoints.findIndex(d=>Math.abs(d.getTime()-new Date(target).setHours(0,0,0,0))<msDay);
+  const startXIdx=idxOf(startD), endXIdx=idxOf(endD), nowXIdx=idxOf(nowD);
+
+  // Chart.js datalabels プラグインなしで点上に数値を表示するカスタム描画
+  const datalabelsPlugin={
+    id:'customLabels',
+    afterDatasetsDraw(chart){
+      const ctx2=chart.ctx;
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        if(meta.hidden) return;
+        meta.data.forEach((pt,i)=>{
+          const val=ds.data[i];
+          if(val==null||val===undefined) return;
+          const showDot=di===1?fixData[i]!=null:false;
+          const showPlan=di===0&&(i===0||i===xPoints.length-1||labels[i]!=='');
+          if(!showDot&&!showPlan) return;
+          ctx2.save();
+          ctx2.font='bold 10px sans-serif';
+          ctx2.fillStyle=di===1?'#166534':'#1d4ed8';
+          ctx2.textAlign='center';
+          // 両方とも点の上に表示（下はx軸ラベルと干渉するため使わない）
+          ctx2.textBaseline='bottom';
+          ctx2.fillText(val+'話', pt.x, pt.y-8);
+          ctx2.restore();
+        });
+      });
+    }
+  };
+
+  schedCharts[w.id]=new Chart(el.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'連載計画（週1話）',
+       data:planData,
+       borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.06)',
+       tension:0,fill:true,
+       pointRadius:(ctx)=>labels[ctx.dataIndex]?4:0,
+       pointBackgroundColor:'#3b82f6',
+       pointBorderColor:'#fff',pointBorderWidth:2,
+       borderWidth:2,order:2},
+      {label:`FIX実績（現在${fixEp}話）`,
+       data:fixData,
+       borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.1)',
+       tension:0,fill:false,
+       pointRadius:(ctx)=>fixData[ctx.dataIndex]!=null?6:0,
+       pointBackgroundColor:'#16a34a',
+       pointBorderColor:'#fff',pointBorderWidth:2,
+       borderWidth:2.5,spanGaps:true,order:1}
+    ]},
+    plugins:[datalabelsPlugin],
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{font:{size:10},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{
+          title:(items)=>fmt(xPoints[items[0].dataIndex]),
+          label:(ctx)=>`${ctx.dataset.label.split('（')[0]}：${ctx.parsed.y}話`
+        }}
+      },
+      layout:{padding:{top:28,bottom:4}},
+      scales:{
+        y:{min:0,max:w.totalEps,
+          title:{display:true,text:'話数',font:{size:9}},
+          ticks:{font:{size:9},stepSize:Math.max(1,Math.ceil(w.totalEps/5))},
+          grid:{color:'rgba(0,0,0,0.05)'}},
+        x:{ticks:{
+            font:{size:9},maxRotation:0,autoSkip:false,
+            padding:6,
+            callback:(v,i)=>(labels[i]||'').split('\n')
+          },
+          grid:{
+            color:(ctx)=>{
+              if(ctx.index===startXIdx) return'rgba(59,130,246,0.4)';
+              if(ctx.index===endXIdx)   return'rgba(239,68,68,0.3)';
+              if(ctx.index===nowXIdx)   return'rgba(234,179,8,0.5)';
+              return'rgba(0,0,0,0.04)';
+            },
+            lineWidth:(ctx)=>(ctx.index===startXIdx||ctx.index===endXIdx||ctx.index===nowXIdx)?2:1
+          }}
+      }
+    }
+  });
+}
+
+/* --- Finance --- */
+let finFilter='all';
+let selectedWorkId=null;
+
+function buildFinFilter(){
+  const pts=[...new Set(works.map(w=>w.partner||'').filter(Boolean))];
+  const filters=[{k:'all',l:'すべて'},{k:'profit',l:'黒字のみ'},...pts.map(p=>({k:'p:'+p,l:p}))];
+  document.getElementById('fin-fbar').innerHTML=filters.map(f=>`<button class="ffbtn${f.k===finFilter?' active':''}" onclick="applyFF('${f.k}',this)">${f.l}</button>`).join('');
+}
+function applyFF(k,el){
+  finFilter=k;
+  document.querySelectorAll('.ffbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderFinSel();
+}
+function renderFinSel(){
+  let list=[...works];
+  // filter
+  if(finFilter==='profit')list=list.filter(w=>calcRevSummary(w).net-calcTotalCost(w).total>=0);
+  if(finFilter.startsWith('p:'))list=list.filter(w=>(w.partner||'')===(finFilter.slice(2)));
+  // sort
+  const sort=document.getElementById('fin-sort').value;
+  if(sort==='top-rev')list.sort((a,b)=>calcRevSummary(b).gross-calcRevSummary(a).gross);
+  else if(sort==='start-date-new')list.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  else if(sort==='start-date-old')list.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  else if(sort==='eps')list.sort((a,b)=>b.totalEps-a.totalEps);
+  else if(sort==='mg')list.sort((a,b)=>mgJPY(b)-mgJPY(a));
+
+  // render list cards
+  const lv=document.getElementById('fin-list-view');
+  if(!list.length){lv.innerHTML='<div style="text-align:center;padding:2rem;color:#888;">該当する作品がありません</div>';return;}
+  lv.innerHTML=list.map(w=>{
+    const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+    const profBadge=pr>=0?`<span class="badge badge-green">黒字 ¥${Math.round(pr/10000)}万</span>`:`<span class="badge badge-red">赤字 ¥${Math.round(Math.abs(pr)/10000)}万</span>`;
+    const isSelected=w.id===selectedWorkId;
+    return`<div class="fin-list-card${isSelected?' selected':''}" onclick="openFinDetail(${w.id})">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="flc-title">${w.title}</div>
+          <div class="flc-meta">${w.genre||'–'}　${w.partner||'–'}　全${w.totalEps}話　連載開始：${w.startDate||'–'}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#888;">
+          <div>売上 <strong style="color:#1a1a1a;">¥${Math.round(rv.gross/10000)}万</strong></div>
+          <div style="margin-top:2px;">制作費 ¥${Math.round(ct.total/10000)}万</div>
+        </div>
+      </div>
+      <div class="flc-badges">
+        ${profBadge}
+        <span class="badge badge-blue">MG ¥${Math.round(mgJPY(w)/10000)}万</span>
+        <span class="badge badge-gray">${rv.gross>0?(w.months||[]).length+'ヶ月連載':'未連載'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // if selected work still in list keep detail open, else close
+  if(selectedWorkId&&list.find(w=>w.id===selectedWorkId)){
+    document.getElementById('fin-content').classList.remove('hidden');
+  } else if(selectedWorkId&&!list.find(w=>w.id===selectedWorkId)){
+    selectedWorkId=null;
+    document.getElementById('fin-content').classList.add('hidden');
+  }
+}
+
+function openFinDetail(id){
+  selectedWorkId=id;
+  const w=works.find(x=>x.id===id);if(!w)return;
+  document.getElementById('fin-content').classList.remove('hidden');
+  document.getElementById('fin-detail-title').textContent=w.title;
+  document.getElementById('fin-info').textContent=`${w.title}　${w.genre||''}　全${w.totalEps}話　連載開始：${w.startDate||'–'}`;
+  renderMetrics(w);
+  // reset subtabs
+  activeSub='cost';
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sub-page').forEach(p=>p.classList.add('hidden'));
+  document.querySelector('.sub-tab').classList.add('active');
+  document.getElementById('sub-cost').classList.remove('hidden');
+  renderCostInputs(w);
+  // highlight selected card
+  renderFinSel();
+  // scroll to detail
+  setTimeout(()=>document.getElementById('fin-content').scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+function closeFinDetail(){
+  selectedWorkId=null;
+  document.getElementById('fin-content').classList.add('hidden');
+}
+function selWork(){return selectedWorkId?works.find(x=>x.id===selectedWorkId)||null:null;}
+function renderFinance(){
+  buildFinFilter();
+  renderFinSel();
+}
+function renderMetrics(w){
+  const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+  document.getElementById('fin-metrics').innerHTML=`
+    <div class="metric-card"><div class="metric-label">総制作費</div><div class="metric-value">¥${Math.round(ct.total/10000)}万</div><div class="metric-sub">MG込み</div></div>
+    <div class="metric-card"><div class="metric-label">累計配信売上</div><div class="metric-value">¥${Math.round(rv.gross/10000)}万</div><div class="metric-sub">RS控除前</div></div>
+    <div class="metric-card"><div class="metric-label">累計自社収益</div><div class="metric-value">¥${Math.round(rv.net/10000)}万</div><div class="metric-sub">RS控除後</div></div>
+    <div class="metric-card"><div class="metric-label">営業損益</div><div class="metric-value ${pr>=0?'green':'red'}">¥${Math.round(pr/10000)}万</div><div class="metric-sub">${pr>=0?'黒字':'赤字'}</div></div>`;
+}
+function renderCostInputs(w){
+  const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
+  const mgS=`<div class="cur-sel"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>
+    <input class="c-in" type="number" value="${c.mg.amount||0}" onchange="setMG(${w.id},this.value)"/>
+    ${c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}（レート ${c.mg.rateUsed}）</div>`:''}`;
+  const tcI=c.transCheck.type==='inhouse'
+    ?`<div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.transCheck.hrRate||0}" onchange="setF(${w.id},'transCheck','hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.transCheck.hrs||0}" onchange="setF(${w.id},'transCheck','hrs',this.value)"/><span>h/話</span></div>`
+    :`<input class="c-in" type="number" value="${c.transCheck.perEp||0}" onchange="setF(${w.id},'transCheck','perEp',this.value)"/>`;
+  const tcT=c.transCheck.type==='inhouse'?Math.round((c.transCheck.hrRate||0)*(c.transCheck.hrs||0)*ep):(c.transCheck.perEp||0)*ep;
+  const tsI=c.typesetting.type==='inhouse'
+    ?`<div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.typesetting.hrRate||0}" onchange="setF(${w.id},'typesetting','hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.typesetting.hrs||0}" onchange="setF(${w.id},'typesetting','hrs',this.value)"/><span>h/話</span></div>`
+    :`<input class="c-in" type="number" value="${c.typesetting.perEp||0}" onchange="setF(${w.id},'typesetting','perEp',this.value)"/>`;
+  const tsT=c.typesetting.type==='inhouse'?Math.round((c.typesetting.hrRate||0)*(c.typesetting.hrs||0)*ep):(c.typesetting.perEp||0)*ep;
+  const fixT=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0)*ep);
+  const trlT=(c.translation.perEp||0)*ep;
+  const cvT=c.cover.amount||0;
+  const grand=mj+trlT+tcT+tsT+fixT+cvT;
+  document.getElementById('cost-inputs').innerHTML=`
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></div><div>${mgS}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${mj.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">固定</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳</div><div style="font-size:10px;color:#888;">円/話</div></div><div><input class="c-in" type="number" value="${c.translation.perEp||0}" onchange="setF(${w.id},'translation','perEp',this.value)"/></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${trlT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳チェック</div><div style="font-size:10px;color:#888;">${c.transCheck.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tcI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tcT.toLocaleString()}</div><div><div class="tog-g"><button class="tog ${c.transCheck.type==='outsource'?'active':''}" onclick="setType(${w.id},'transCheck','outsource')">外注</button><button class="tog ${c.transCheck.type==='inhouse'?'active':''}" onclick="setType(${w.id},'transCheck','inhouse')">社内</button></div></div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植</div><div style="font-size:10px;color:#888;">${c.typesetting.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tsI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tsT.toLocaleString()}</div><div><div class="tog-g"><button class="tog ${c.typesetting.type==='outsource'?'active':''}" onclick="setType(${w.id},'typesetting','outsource')">外注</button><button class="tog ${c.typesetting.type==='inhouse'?'active':''}" onclick="setType(${w.id},'typesetting','inhouse')">社内</button></div></div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">円/h × h/話</div></div><div><div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.fix.hrRate||0}" onchange="setFix(${w.id},'hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.fix.hrs||0}" onchange="setFix(${w.id},'hrs',this.value)"/><span>h/話</span></div></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${fixT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">社内</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></div><div><input class="c-in" type="number" value="${cvT}" onchange="setF(${w.id},'cover','amount',this.value)"/></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${cvT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
+    <div class="cost-total-row"><div style="font-size:13px;font-weight:700;padding-left:4px;">合計制作費用</div><div></div><div style="text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</div><div></div></div>`;
+}
+function setCur(id,c){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.currency=c;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setMG(id,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.amount=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setF(id,k,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs[k][f]=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setType(id,k,t){const w=works.find(x=>x.id===id);if(!w)return;w.costs[k].type=t;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setFix(id,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs.fix[f]=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+
+function renderRevTable(w){
+  document.getElementById('rev-tbody').innerHTML=(w.months||[]).map((m,i)=>{
+    const net=Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100));
+    return`<tr><td>${m.ym}</td>
+      <td><input class="m-in" type="number" value="${m.gross||0}" onchange="updM(${w.id},${i},'gross',this.value)"/>円</td>
+      <td><input class="m-in" type="number" value="${m.delivery||0}" onchange="updM(${w.id},${i},'delivery',this.value)"/>円</td>
+      <td><input class="m-in" style="width:52px;" type="number" value="${m.partnerRS||50}" onchange="updM(${w.id},${i},'partnerRS',this.value)"/>%</td>
+      <td style="font-weight:700;">¥${net.toLocaleString()}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="rmMonth(${w.id},${i})">×</button></td></tr>`;
+  }).join('');
+}
+function renderRevPL(w){
+  const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+  document.getElementById('rev-pl').innerHTML=`
+    <div class="pl-row"><span>累計配信売上</span><span>¥${rv.gross.toLocaleString()}</span></div>
+    <div class="pl-row"><span>累計配信収益</span><span>¥${rv.delivery.toLocaleString()}</span></div>
+    <div class="pl-row"><span>累計自社収益（パートナーRS控除後）</span><span>¥${rv.net.toLocaleString()}</span></div>
+    <div class="pl-row"><span>総制作費</span><span style="color:#991b1b;">− ¥${ct.total.toLocaleString()}</span></div>
+    <div class="pl-row total"><span>営業損益</span><span class="${pr>=0?'green':'red'}">¥${pr.toLocaleString()}</span></div>`;
+}
+function addMonthRow(){
+  const w=selWork();if(!w)return;
+  const ym=document.getElementById('new-month').value;
+  if(!ym||w.months.find(m=>m.ym===ym))return;
+  w.months.push({ym,gross:0,delivery:0,partnerRS:50});
+  w.months.sort((a,b)=>a.ym.localeCompare(b.ym));
+  renderRevTable(w);renderRevPL(w);renderMetrics(w);
+  if(syncEnabled) syncToSheets();
+}
+function updM(id,i,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.months[i][f]=parseFloat(v)||0;renderRevTable(w);renderRevPL(w);renderMetrics(w);debouncedSync();}
+function rmMonth(id,i){const w=works.find(x=>x.id===id);if(!w)return;w.months.splice(i,1);renderRevTable(w);renderRevPL(w);renderMetrics(w);if(syncEnabled)syncToSheets();}
+
+function renderGraph(w){
+  const ct=calcTotalCost(w),ms=w.months||[],bb=document.getElementById('be-box');
+  if(!ms.length){bb.innerHTML=`<div class="be-box"><div class="be-title">収益データがありません</div></div>`;return;}
+  let cn=0;const nd=[],cd=[],pd=[];
+  ms.forEach(m=>{cn+=Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100));nd.push(cn);cd.push(ct.total);pd.push(cn-ct.total);});
+  const ctx=document.getElementById('pl-chart').getContext('2d');
+  if(plChart){plChart.destroy();plChart=null;}
+  plChart=new Chart(ctx,{type:'line',data:{labels:ms.map(m=>m.ym),datasets:[
+    {label:'累計自社収益',data:nd,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.07)',tension:0.35,fill:false,pointRadius:4,pointBackgroundColor:'#16a34a'},
+    {label:'総制作費',data:cd,borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,0.04)',borderDash:[6,4],fill:false,pointRadius:3,pointBackgroundColor:'#dc2626'},
+    {label:'営業損益',data:pd,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.07)',tension:0.35,fill:true,pointRadius:4,pointBackgroundColor:'#2563eb'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:14}}},
+    scales:{y:{ticks:{callback:v=>'¥'+(v/10000).toFixed(0)+'万',font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},x:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.03)'}}}}});
+  const pr=pd[pd.length-1];
+  if(pr>=0){bb.innerHTML=`<div class="be-box profit"><div class="be-title">損益状況</div><div class="be-val pv">✓ 黒字転換済み</div><div class="be-sub">累計損益：¥${pr.toLocaleString()}</div></div>`;}
+  else{const rm=Math.abs(pr),avg=ms.length?cn/ms.length:0,mn=avg>0?Math.ceil(rm/avg):'－';
+    bb.innerHTML=`<div class="be-box"><div class="be-title">黒字転換までの目安</div><div class="be-val">あと約${mn}ヶ月</div><div class="be-sub">未回収：¥${rm.toLocaleString()}　月平均自社収益：¥${Math.round(avg).toLocaleString()}</div></div>`;}
+}
+
+/* ===== エクスポート / インポート ===== */
+function exportData(){
+  const payload={
+    version:1,
+    exportedAt:new Date().toISOString(),
+    works,
+    trash
+  };
+  const json=JSON.stringify(payload,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const dateStr=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.href=url;
+  a.download=`webtoon_data_${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    try{
+      const payload=JSON.parse(ev.target.result);
+      if(!payload.works||!Array.isArray(payload.works)){
+        showImportMsg('error','❌ 無効なファイル形式です。正しいエクスポートファイルを選択してください。');
+        return;
+      }
+      // 上書き確認
+      const panel=document.getElementById('import-confirm-panel');
+      if(panel)panel.remove();
+      const box=document.createElement('div');
+      box.id='import-confirm-panel';
+      box.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1.5px solid #e5e5e5;border-radius:12px;padding:24px 28px;z-index:999;box-shadow:0 4px 24px rgba(0,0,0,0.12);min-width:300px;max-width:90vw;';
+      box.innerHTML=`
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📥 データをインポート</div>
+        <div style="font-size:12px;color:#555;margin-bottom:6px;">
+          エクスポート日時：${payload.exportedAt?new Date(payload.exportedAt).toLocaleString('ja-JP'):'不明'}<br>
+          作品数：${payload.works.length}件
+        </div>
+        <div style="font-size:12px;color:#991b1b;background:#fff5f5;border-radius:7px;padding:8px 10px;margin-bottom:14px;">
+          ⚠️ 現在のデータはすべて上書きされます。
+        </div>
+        <div style="display:flex;gap:8px;flex-direction:column;">
+          <button class="btn btn-primary btn-sm" style="font-size:12px;" onclick="applyImport(${JSON.stringify(payload).replace(/"/g,'&quot;')})">上書きして読み込む</button>
+          <button class="btn btn-sm" style="font-size:12px;color:#666;" onclick="mergeImport(${JSON.stringify(payload).replace(/"/g,'&quot;')})">現在のデータに追加（マージ）</button>
+          <button class="btn btn-sm" style="font-size:12px;" onclick="document.getElementById('import-confirm-panel').remove()">キャンセル</button>
+        </div>`;
+      document.body.appendChild(box);
+    }catch(err){
+      showImportMsg('error','❌ ファイルの読み込みに失敗しました。');
+    }
+    e.target.value=''; // reset file input
+  };
+  reader.readAsText(file);
+}
+
+function applyImport(payload){
+  if(typeof payload==='string') payload=JSON.parse(payload);
+  works=payload.works;
+  trash=payload.trash||[];
+  nextId=Math.max(...works.map(w=>w.id),nextId)+1;
+  document.getElementById('import-confirm-panel')?.remove();
+  renderWorks();renderFinSel();updateTrashBadge();
+  showImportMsg('success',`✅ ${works.length}件の作品を読み込みました。`);
+}
+
+function mergeImport(payload){
+  if(typeof payload==='string') payload=JSON.parse(payload);
+  const existingIds=new Set(works.map(w=>w.id));
+  let added=0;
+  payload.works.forEach(w=>{
+    if(!existingIds.has(w.id)){
+      // IDが重複する場合は新しいIDを割り当て
+      w.id=++nextId;
+      works.push(w);
+      added++;
+    }
+  });
+  document.getElementById('import-confirm-panel')?.remove();
+  renderWorks();renderFinSel();
+  showImportMsg('success',`✅ ${added}件の作品を追加しました（重複スキップ）。`);
+}
+
+function showImportMsg(type,msg){
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${type==='success'?'#f0fdf4':'#fff5f5'};border:1px solid ${type==='success'?'#bbf7d0':'#fecaca'};border-radius:8px;padding:10px 18px;font-size:13px;color:${type==='success'?'#166534':'#991b1b'};z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,0.1);`;
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ページ読み込み時の初期化
+function initApp(){
+  renderWorks();
+  // Sheets URLが保存されていれば自動接続
+  if(SHEETS_URL){
+    syncEnabled=true;
+    document.getElementById('btn-sync-now').style.display='';
+    setSyncStatus('syncing');
+    syncFromSheets().then(()=>{
+      startAutoSync();
+    }).catch(()=>{
+      setSyncStatus('error','再接続してください');
+    });
+  }
+}
+
+initApp();
+</script>
+</body>
+</html>
