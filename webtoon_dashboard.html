@@ -1198,30 +1198,75 @@ function renderMetrics(w){
     <div class="metric-card"><div class="metric-label">累計自社収益</div><div class="metric-value">¥${Math.round(rv.net/10000)}万</div><div class="metric-sub">RS控除後</div></div>
     <div class="metric-card"><div class="metric-label">営業損益</div><div class="metric-value ${pr>=0?'green':'red'}">¥${Math.round(pr/10000)}万</div><div class="metric-sub">${pr>=0?'黒字':'赤字'}</div></div>`;
 }
+let costEditMode={}; // workId → true/false
+
+function toggleCostEdit(wid){
+  costEditMode[wid]=!costEditMode[wid];
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  renderCostInputs(w);
+}
+
+function saveCostEdit(wid){
+  costEditMode[wid]=false;
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  renderCostInputs(w);renderMetrics(w);
+  if(syncEnabled) syncToSheets();
+}
+
 function renderCostInputs(w){
   const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
-  const mgS=`<div class="cur-sel"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>
-    <input class="c-in" type="number" value="${c.mg.amount||0}" onchange="setMG(${w.id},this.value)"/>
+  const isEdit=!!costEditMode[w.id];
+
+  // 編集/保存ボタン
+  const editBtn=isEdit
+    ?`<button class="btn btn-sm btn-primary" onclick="saveCostEdit(${w.id})" style="font-size:12px;">💾 保存</button>`
+    :`<button class="btn btn-sm" onclick="toggleCostEdit(${w.id})" style="font-size:12px;">✏️ 編集</button>`;
+
+  // 値の表示ヘルパー（編集モード:input、閲覧モード:テキスト）
+  const numField=(val,onch,style='')=>isEdit
+    ?`<input class="c-in" type="number" value="${val}" onchange="${onch}" style="${style}"/>`
+    :`<span style="font-size:13px;font-weight:600;">${Number(val).toLocaleString()}</span>`;
+
+  const mgAmtField=isEdit
+    ?`<input class="c-in" type="number" value="${c.mg.amount||0}" onchange="setMG(${w.id},this.value)"/>`
+    :`<span style="font-size:13px;font-weight:600;">${(c.mg.amount||0).toLocaleString()}</span>`;
+
+  const curBtns=isEdit
+    ?`<div class="cur-sel"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>`
+    :`<span style="font-size:11px;color:#888;margin-right:4px;">${c.mg.currency}</span>`;
+
+  const mgS=`${curBtns}${mgAmtField}
     ${c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}（レート ${c.mg.rateUsed}）</div>`:''}`;
+
+  // 翻訳チェック
   const tcI=c.transCheck.type==='inhouse'
-    ?`<div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.transCheck.hrRate||0}" onchange="setF(${w.id},'transCheck','hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.transCheck.hrs||0}" onchange="setF(${w.id},'transCheck','hrs',this.value)"/><span>h/話</span></div>`
-    :`<input class="c-in" type="number" value="${c.transCheck.perEp||0}" onchange="setF(${w.id},'transCheck','perEp',this.value)"/>`;
+    ?`<div class="ih">${numField(c.transCheck.hrRate||0,`setF(${w.id},'transCheck','hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.transCheck.hrs||0,`setF(${w.id},'transCheck','hrs',this.value)`,'width:48px;')}<span>h/話</span></div>`
+    :numField(c.transCheck.perEp||0,`setF(${w.id},'transCheck','perEp',this.value)`);
   const tcT=c.transCheck.type==='inhouse'?Math.round((c.transCheck.hrRate||0)*(c.transCheck.hrs||0)*ep):(c.transCheck.perEp||0)*ep;
+
+  // 写植
   const tsI=c.typesetting.type==='inhouse'
-    ?`<div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.typesetting.hrRate||0}" onchange="setF(${w.id},'typesetting','hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.typesetting.hrs||0}" onchange="setF(${w.id},'typesetting','hrs',this.value)"/><span>h/話</span></div>`
-    :`<input class="c-in" type="number" value="${c.typesetting.perEp||0}" onchange="setF(${w.id},'typesetting','perEp',this.value)"/>`;
+    ?`<div class="ih">${numField(c.typesetting.hrRate||0,`setF(${w.id},'typesetting','hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.typesetting.hrs||0,`setF(${w.id},'typesetting','hrs',this.value)`,'width:48px;')}<span>h/話</span></div>`
+    :numField(c.typesetting.perEp||0,`setF(${w.id},'typesetting','perEp',this.value)`);
   const tsT=c.typesetting.type==='inhouse'?Math.round((c.typesetting.hrRate||0)*(c.typesetting.hrs||0)*ep):(c.typesetting.perEp||0)*ep;
+
   const fixT=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0)*ep);
   const trlT=(c.translation.perEp||0)*ep;
   const cvT=c.cover.amount||0;
   const grand=mj+trlT+tcT+tsT+fixT+cvT;
+
+  // 外注/社内トグル（編集モードのみ）
+  const tcToggle=isEdit?`<div class="tog-g"><button class="tog ${c.transCheck.type==='outsource'?'active':''}" onclick="setType(${w.id},'transCheck','outsource')">外注</button><button class="tog ${c.transCheck.type==='inhouse'?'active':''}" onclick="setType(${w.id},'transCheck','inhouse')">社内</button></div>`:`<span style="font-size:11px;color:#aaa;">${c.transCheck.type==='inhouse'?'社内':'外注'}</span>`;
+  const tsToggle=isEdit?`<div class="tog-g"><button class="tog ${c.typesetting.type==='outsource'?'active':''}" onclick="setType(${w.id},'typesetting','outsource')">外注</button><button class="tog ${c.typesetting.type==='inhouse'?'active':''}" onclick="setType(${w.id},'typesetting','inhouse')">社内</button></div>`:`<span style="font-size:11px;color:#aaa;">${c.typesetting.type==='inhouse'?'社内':'外注'}</span>`;
+
   document.getElementById('cost-inputs').innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${editBtn}</div>
     <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></div><div>${mgS}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${mj.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">固定</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳</div><div style="font-size:10px;color:#888;">円/話</div></div><div><input class="c-in" type="number" value="${c.translation.perEp||0}" onchange="setF(${w.id},'translation','perEp',this.value)"/></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${trlT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳チェック</div><div style="font-size:10px;color:#888;">${c.transCheck.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tcI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tcT.toLocaleString()}</div><div><div class="tog-g"><button class="tog ${c.transCheck.type==='outsource'?'active':''}" onclick="setType(${w.id},'transCheck','outsource')">外注</button><button class="tog ${c.transCheck.type==='inhouse'?'active':''}" onclick="setType(${w.id},'transCheck','inhouse')">社内</button></div></div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植</div><div style="font-size:10px;color:#888;">${c.typesetting.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tsI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tsT.toLocaleString()}</div><div><div class="tog-g"><button class="tog ${c.typesetting.type==='outsource'?'active':''}" onclick="setType(${w.id},'typesetting','outsource')">外注</button><button class="tog ${c.typesetting.type==='inhouse'?'active':''}" onclick="setType(${w.id},'typesetting','inhouse')">社内</button></div></div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">円/h × h/話</div></div><div><div class="ih"><input class="c-in" style="width:62px;" type="number" value="${c.fix.hrRate||0}" onchange="setFix(${w.id},'hrRate',this.value)"/><span>円/h ×</span><input class="c-in" style="width:48px;" type="number" step="0.25" value="${c.fix.hrs||0}" onchange="setFix(${w.id},'hrs',this.value)"/><span>h/話</span></div></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${fixT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">社内</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></div><div><input class="c-in" type="number" value="${cvT}" onchange="setF(${w.id},'cover','amount',this.value)"/></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${cvT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳</div><div style="font-size:10px;color:#888;">円/話</div></div><div>${numField(c.translation.perEp||0,`setF(${w.id},'translation','perEp',this.value)`)}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${trlT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳チェック</div><div style="font-size:10px;color:#888;">${c.transCheck.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tcI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tcT.toLocaleString()}</div><div>${tcToggle}</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植</div><div style="font-size:10px;color:#888;">${c.typesetting.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tsI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tsT.toLocaleString()}</div><div>${tsToggle}</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">円/h × h/話</div></div><div><div class="ih">${numField(c.fix.hrRate||0,`setFix(${w.id},'hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.fix.hrs||0,`setFix(${w.id},'hrs',this.value)`,'width:48px;')}<span>h/話</span></div></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${fixT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">社内</div></div>
+    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></div><div>${numField(cvT,`setF(${w.id},'cover','amount',this.value)`)}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${cvT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
     <div class="cost-total-row"><div style="font-size:13px;font-weight:700;padding-left:4px;">合計制作費用</div><div></div><div style="text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</div><div></div></div>`;
 }
 function setCur(id,c){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.currency=c;renderCostInputs(w);renderMetrics(w);debouncedSync();}
