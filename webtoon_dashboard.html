@@ -126,6 +126,28 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
 </style>
 </head>
 <body>
+
+<!-- ロック画面 -->
+<div id="lock-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#f0eeea;z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:36px 40px;width:340px;max-width:90vw;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <div style="font-size:32px;margin-bottom:12px;">🔐</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px;">ウェブトゥーン管理</div>
+    <div style="font-size:12px;color:#888;margin-bottom:24px;">PINコードを入力してください</div>
+    <input id="pin-input" type="password" maxlength="20"
+      style="width:100%;padding:10px 14px;border:1.5px solid #ccc;border-radius:8px;font-size:16px;text-align:center;letter-spacing:4px;outline:none;margin-bottom:10px;"
+      placeholder="••••"
+      onkeydown="if(event.key==='Enter')checkPin()"
+      oninput="document.getElementById('pin-error').style.display='none'"/>
+    <div id="pin-error" style="font-size:12px;color:#dc2626;margin-bottom:10px;display:none;">PINコードが違います</div>
+    <button onclick="checkPin()"
+      style="width:100%;padding:10px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+      ログイン
+    </button>
+    <div style="font-size:11px;color:#bbb;margin-top:16px;">管理者からPINコードを受け取ってください</div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none;">
 <div class="app">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
   <h1 style="margin:0;">ウェブトゥーン管理ダッシュボード</h1>
@@ -136,6 +158,10 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
     </button>
     <button class="btn btn-sm" onclick="syncFromSheets()" id="btn-sync-now" style="font-size:11px;display:none;" title="今すぐ同期">
       🔄 今すぐ同期
+    </button>
+    <button class="btn btn-sm" onclick="changePinPrompt()" style="font-size:11px;" title="PINコードを変更">
+      🔑 PIN変更
+    </button>
     </button>
   </div>
 </div>
@@ -1365,7 +1391,65 @@ function initApp(){
   }
 }
 
-initApp();
+// ===== PIN認証 =====
+const CORRECT_PIN = localStorage.getItem('dashboardPin') || '1234';
+
+function checkPin(){
+  const input = document.getElementById('pin-input').value;
+  if(input === CORRECT_PIN){
+    // 認証成功：セッション中は記憶
+    sessionStorage.setItem('pinOk','1');
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('main-app').style.display='';
+    initApp();
+  } else {
+    document.getElementById('pin-error').style.display='block';
+    document.getElementById('pin-input').value='';
+    document.getElementById('pin-input').focus();
+    // 3回失敗したら5秒ロック
+    const fails = parseInt(sessionStorage.getItem('pinFails')||'0') + 1;
+    sessionStorage.setItem('pinFails', fails);
+    if(fails >= 3){
+      const btn = document.querySelector('#lock-screen button');
+      const inp = document.getElementById('pin-input');
+      btn.disabled = inp.disabled = true;
+      btn.textContent = '5秒後に再試行...';
+      setTimeout(()=>{
+        btn.disabled = inp.disabled = false;
+        btn.textContent = 'ログイン';
+        sessionStorage.setItem('pinFails','0');
+        inp.focus();
+      }, 5000);
+    }
+  }
+}
+
+function changePinPrompt(){
+  const cur = prompt('現在のPINコードを入力してください：');
+  if(cur !== CORRECT_PIN){ alert('PINコードが違います'); return; }
+  const next = prompt('新しいPINコードを入力してください（4〜20文字）：');
+  if(!next || next.length < 4){ alert('4文字以上で設定してください'); return; }
+  const confirm2 = prompt('もう一度入力してください：');
+  if(next !== confirm2){ alert('PINコードが一致しません'); return; }
+  localStorage.setItem('dashboardPin', next);
+  location.reload();
+}
+
+// ページ読み込み時：セッション内認証済みならスキップ
+if(sessionStorage.getItem('pinOk')==='1'){
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('main-app').style.display='';
+  initApp();
+} else {
+  if(!localStorage.getItem('dashboardPin')){
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('main-app').style.display='';
+    initApp();
+  } else {
+    document.getElementById('pin-input').focus();
+  }
+}
 </script>
+</div><!-- /main-app -->
 </body>
 </html>
