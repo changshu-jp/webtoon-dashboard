@@ -550,7 +550,7 @@ function switchTab(tab,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+tab).classList.add('active');
-  if(tab==='finance'){buildFinFilter();renderFinSel();}
+  if(tab==='finance'){buildFinFilter();renderFinSel();renderFinSummary();}
 }
 function switchSubTab(tab,el){
   activeSub=tab;
@@ -1684,6 +1684,7 @@ function showImportMsg(type,msg){
 // ページ読み込み時の初期化
 function initApp(){
   renderWorks();
+  renderFinSummary();
   // Sheets URLが保存されていれば自動接続
   if(SHEETS_URL){
     syncEnabled=true;
