@@ -106,6 +106,18 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
 .ih{display:flex;gap:4px;align-items:center;justify-content:flex-end;}
 .ih input{width:62px;}
 .ih span{font-size:10px;color:#888;white-space:nowrap;}
+.summary-table{width:100%;border-collapse:collapse;font-size:12px;}
+.summary-table th{padding:7px 10px;text-align:center;color:#666;font-weight:500;border-bottom:1px solid #eee;background:#fafafa;white-space:nowrap;}
+.summary-table th:first-child,.summary-table th:nth-child(2),.summary-table th:nth-child(3){text-align:left;}
+.summary-table td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle;text-align:center;}
+.summary-table td:first-child,.summary-table td:nth-child(2),.summary-table td:nth-child(3){text-align:left;}
+.summary-table tr:last-child td{border-bottom:none;}
+.sum-row{cursor:pointer;transition:background 0.1s;}
+.sum-row:hover{background:#f5f9ff;}
+.sum-row.selected{background:#eef5ff;}
+.prog-mini{display:flex;align-items:center;gap:3px;}
+.prog-bar-sm{height:4px;border-radius:2px;background:#f0f0f0;width:36px;flex-shrink:0;}
+.prog-fill{height:4px;border-radius:2px;}
 .hidden{display:none;}
 /* Edit inline panel */
 .edit-panel{background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:10px;padding:16px 18px;margin-bottom:14px;}
@@ -251,6 +263,24 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
       <button class="btn btn-primary btn-sm" onclick="addWork()">追加</button>
     </div>
   </div>
+  <!-- 進行状況サマリー -->
+  <div class="card" id="summary-card" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:700;">📋 作品一覧サマリー</span>
+      <button class="btn btn-sm" onclick="toggleSummary()" id="summary-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
+    </div>
+    <div id="summary-body" style="overflow-x:auto;">
+      <table class="summary-table" id="summary-table">
+        <thead><tr>
+          <th>パートナー</th><th>作品名</th><th>ジャンル</th>
+          <th>全話数</th><th>連載開始</th>
+          <th>原稿納品</th><th>翻訳</th><th>翻訳チェック</th><th>写植</th><th>FIX</th><th>連載データ</th>
+        </tr></thead>
+        <tbody id="summary-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="works-list"></div>
 </div>
 
@@ -680,6 +710,21 @@ function saveEditWork(){
   if(syncEnabled) syncToSheets();
 }
 
+let summaryOpen=true;
+let openWorkIds=new Set(); // クリックで展開中の作品ID
+
+function toggleSummary(){
+  summaryOpen=!summaryOpen;
+  document.getElementById('summary-body').style.display=summaryOpen?'':'none';
+  document.getElementById('summary-toggle-btn').textContent=summaryOpen?'▲ 折りたたむ':'▼ 展開する';
+}
+
+function toggleWorkDetail(id){
+  if(openWorkIds.has(id)) openWorkIds.delete(id);
+  else openWorkIds.add(id);
+  renderWorks();
+}
+
 function renderWorks(){
   buildProgFilters();
   const wv=document.getElementById('f-work').value;
@@ -692,13 +737,49 @@ function renderWorks(){
     if(sv==='fix-ok'){const f=w.progress[w.progress.length-1][4]||0;if(f<w.totalEps)return false;}
     return true;
   });
+
+  // サマリーテーブル
+  const tbody=document.getElementById('summary-tbody');
+  if(!list.length){
+    tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;color:#888;padding:16px;">該当する作品がありません</td></tr>`;
+  } else {
+    tbody.innerHTML=list.map(w=>{
+      const cur=w.progress[w.progress.length-1];
+      const isOpen=openWorkIds.has(w.id);
+      const stageCells=STAGES.map((s,i)=>{
+        const ep=cur[i]||0;
+        const pct=w.totalEps?Math.round(ep/w.totalEps*100):0;
+        const color=ep>=w.totalEps?'#16a34a':ep>0?'#ca8a04':'#e2e8f0';
+        return`<td>
+          <div class="prog-mini" style="justify-content:center;">
+            <span style="font-size:11px;font-weight:600;min-width:22px;">${ep}</span>
+            <div class="prog-bar-sm"><div class="prog-fill" style="width:${pct}%;background:${color};"></div></div>
+          </div>
+        </td>`;
+      }).join('');
+      return`<tr class="sum-row${isOpen?' selected':''}" onclick="toggleWorkDetail(${w.id})">
+        <td>${w.partner||'–'}</td>
+        <td style="font-weight:600;">${w.title}</td>
+        <td>${w.genre||'–'}</td>
+        <td style="text-align:center;">${w.totalEps}話</td>
+        <td>${w.startDate||'–'}</td>
+        ${stageCells}
+      </tr>`;
+    }).join('');
+  }
+
+  // 詳細カード（開いているもののみ）
   const c=document.getElementById('works-list');
-  if(!list.length){c.innerHTML='<div style="text-align:center;padding:2rem;color:#888;">該当する作品がありません</div>';return;}
-  c.innerHTML=list.map(workCard).join('');
-  list.forEach(w=>{
-    if(w.progress.length>1)setTimeout(()=>drawWeekChart(w),0);
-    if(w.contractDate&&w.startDate)setTimeout(()=>drawSchedChart(w),0);
-  });
+  const openList=list.filter(w=>openWorkIds.has(w.id));
+  if(!openList.length){
+    c.innerHTML='<div style="text-align:center;padding:1.5rem;color:#aaa;font-size:12px;">作品名をクリックすると詳細が表示されます</div>';
+  } else {
+    c.innerHTML=openList.map(workCard).join('');
+    openList.forEach(w=>{
+      if(w.progress.length>1)setTimeout(()=>drawWeekChart(w),0);
+      if(w.contractDate&&w.startDate)setTimeout(()=>drawSchedChart(w),0);
+    });
+  }
 }
 
 function workCard(w){
@@ -718,7 +799,7 @@ function workCard(w){
       <td><span class="pill ${sc}" style="font-size:10px;">${st}</span></td></tr>`;
   }).join('');
   const wch=w.progress.length>1?`<div class="week-chart-wrap"><canvas id="wc-${w.id}"></canvas></div>`:'';
-  return`<div class="card">
+  return`<div class="card" id="card-${w.id}">
     <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
       <div class="work-badge">${w.title.slice(0,2)}</div>
       <div style="flex:1;">
@@ -728,6 +809,7 @@ function workCard(w){
       <div style="display:flex;gap:6px;">
         <button class="btn btn-sm" onclick="toggleHist(${w.id})">制作管理</button>
         <button class="btn btn-sm btn-danger" onclick="removeWork(${w.id})">削除</button>
+        <button class="btn btn-sm" onclick="toggleWorkDetail(${w.id})" title="閉じる" style="font-size:16px;padding:2px 8px;line-height:1;">×</button>
       </div>
     </div>
     <table class="ptable"><thead><tr>
@@ -766,37 +848,60 @@ function buildSched(w){
 }
 
 function buildHistPanel(w){
-  let html='<div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px;">週次記録</div>';
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <span style="font-size:12px;font-weight:700;color:#444;">週次記録</span>
+    <button class="btn btn-sm" onclick="toggleHist(${w.id})" style="font-size:14px;padding:1px 8px;line-height:1.4;">×</button>
+  </div>`;
+
+  // ヘッダー行（工程名）
+  html+=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11px;">
+    <thead><tr style="background:#fafafa;">
+      <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;white-space:nowrap;min-width:90px;">日付</th>
+      ${STAGES.map(s=>`<th style="padding:5px 6px;text-align:center;border-bottom:1px solid #eee;white-space:nowrap;">${s}</th>`).join('')}
+      <th style="padding:5px 6px;border-bottom:1px solid #eee;"></th>
+    </tr></thead>
+    <tbody>`;
+
   w.histDates.forEach((d,si)=>{
     const snap=w.progress[si];
     const isLatest=si===w.progress.length-1;
-    html+=`<div style="margin-bottom:12px;padding:10px 12px;background:${isLatest?'#eef5ff':'#fafafa'};border-radius:8px;border:1px solid ${isLatest?'#c7d9ff':'#eee'};">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <input type="date" value="${d}" style="padding:2px 6px;font-size:12px;font-weight:700;color:${isLatest?'#1d4ed8':'#555'};border:1px solid ${isLatest?'#93c5fd':'#ccc'};border-radius:5px;background:transparent;"
-            onchange="editSnapDate(${w.id},${si},this.value)"/>
-          ${isLatest?'<span style="font-size:11px;color:#1d4ed8;font-weight:700;">【最新】</span>':''}
-        </div>
-        <button class="btn btn-sm btn-danger" onclick="delSnap(${w.id},${si})">削除</button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-        ${STAGES.map((s,stg)=>`<div style="font-size:11px;">
-          <div style="color:#888;margin-bottom:2px;">${s}</div>
-          <input class="hist-ep-in" type="number" min="0" max="${w.totalEps}" value="${snap[stg]||0}"
-            onchange="editSnap(${w.id},${si},${stg},this.value)" style="width:52px;"/>
-          <span style="font-size:10px;color:#aaa;">/ ${w.totalEps}</span>
-        </div>`).join('')}
-      </div>
-    </div>`;
+    const prev=si>0?w.progress[si-1]:null;
+    html+=`<tr style="background:${isLatest?'#eef5ff':'transparent'};">
+      <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0;">
+        <input type="date" value="${d}"
+          style="padding:2px 4px;font-size:11px;font-weight:${isLatest?'700':'400'};color:${isLatest?'#1d4ed8':'#555'};border:1px solid ${isLatest?'#93c5fd':'#ddd'};border-radius:4px;background:transparent;width:108px;"
+          onchange="editSnapDate(${w.id},${si},this.value)"/>
+        ${isLatest?'<span style="font-size:9px;color:#1d4ed8;font-weight:700;margin-left:2px;">最新</span>':''}
+      </td>
+      ${STAGES.map((s,stg)=>{
+        const val=snap[stg]||0;
+        const diff=prev!=null?(val-(prev[stg]||0)):null;
+        const diffHtml=diff!=null&&diff!==0?`<span style="font-size:9px;color:${diff>0?'#166534':'#991b1b'};margin-left:2px;">${diff>0?'+':''}${diff}</span>`:'';
+        return`<td style="padding:5px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">
+          <input class="hist-ep-in" type="number" min="0" max="${w.totalEps}" value="${val}"
+            onchange="editSnap(${w.id},${si},${stg},this.value)"
+            style="width:44px;text-align:center;padding:2px 3px;font-size:11px;border:1px solid #ddd;border-radius:4px;"/>
+          ${diffHtml}
+        </td>`;
+      }).join('')}
+      <td style="padding:5px 6px;border-bottom:1px solid #f0f0f0;">
+        <button class="btn btn-sm btn-danger" onclick="delSnap(${w.id},${si})" style="font-size:10px;padding:2px 6px;">×</button>
+      </td>
+    </tr>`;
   });
-  html+=`<div style="display:flex;gap:8px;margin-top:4px;">
+
+  html+=`</tbody></table></div>
+  <div style="display:flex;gap:8px;margin-top:10px;">
     <button class="btn btn-sm btn-primary" onclick="recordWeek(${w.id})">今週分を記録</button>
     <button class="btn btn-sm btn-success" onclick="applyLatest(${w.id})">記録完了・最新データに反映</button>
   </div>`;
   return html;
 }
 
-function toggleHist(id){document.getElementById('hist-'+id).classList.toggle('hidden');}
+function toggleHist(id){
+  const panel=document.getElementById('hist-'+id);
+  if(panel) panel.classList.toggle('hidden');
+}
 // デバウンス付き自動保存（入力中に連続で叩かない）
 let syncDebounceTimer=null;
 function debouncedSync(){
@@ -810,8 +915,9 @@ function recordWeek(id){
   w.progress.push([...w.progress[w.progress.length-1]]);
   w.histDates.push(today());
   if(w.progress.length>10){w.progress.shift();w.histDates.shift();}
+  openWorkIds.add(id);
   renderWorks();
-  setTimeout(()=>document.getElementById('hist-'+id)&&document.getElementById('hist-'+id).classList.remove('hidden'),50);
+  setTimeout(()=>{const p=document.getElementById('hist-'+id);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function editSnap(wid,si,stg,val){const w=works.find(x=>x.id===wid);if(w){w.progress[si][stg]=parseInt(val)||0;debouncedSync();}}
@@ -820,13 +926,15 @@ function delSnap(wid,si){
   const w=works.find(x=>x.id===wid);if(!w)return;
   if(w.progress.length<=1){alert('最低1件の記録が必要です');return;}
   w.progress.splice(si,1);w.histDates.splice(si,1);
+  openWorkIds.add(wid);
   renderWorks();
-  setTimeout(()=>document.getElementById('hist-'+wid)&&document.getElementById('hist-'+wid).classList.remove('hidden'),50);
+  setTimeout(()=>{const p=document.getElementById('hist-'+wid);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function applyLatest(wid){
+  openWorkIds.add(wid);
   renderWorks();
-  setTimeout(()=>document.getElementById('hist-'+wid)&&document.getElementById('hist-'+wid).classList.remove('hidden'),50);
+  setTimeout(()=>{const p=document.getElementById('hist-'+wid);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function updProg(id,si,val){const w=works.find(x=>x.id===id);if(w){w.progress[w.progress.length-1][si]=parseInt(val)||0;debouncedSync();}}
