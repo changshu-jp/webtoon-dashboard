@@ -271,11 +271,7 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
     </div>
     <div id="summary-body" style="overflow-x:auto;">
       <table class="summary-table" id="summary-table">
-        <thead><tr>
-          <th>パートナー</th><th>作品名</th><th>ジャンル</th>
-          <th>全話数</th><th>連載開始</th>
-          <th>原稿納品</th><th>翻訳</th><th>翻訳チェック</th><th>写植</th><th>FIX</th><th>連載データ</th>
-        </tr></thead>
+        <thead><tr id="summary-thead-row"></tr></thead>
         <tbody id="summary-tbody"></tbody>
       </table>
     </div>
@@ -287,6 +283,21 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
 <!-- 収支管理 -->
 <div class="page" id="page-finance">
   <div class="sec-hdr"><span class="sec-title">収支管理</span></div>
+
+  <!-- 収支サマリーテーブル -->
+  <div class="card" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:700;">📊 収支一覧サマリー</span>
+      <button class="btn btn-sm" onclick="toggleFinSummary()" id="fin-summary-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
+    </div>
+    <div id="fin-summary-body" style="overflow-x:auto;">
+      <table class="summary-table">
+        <thead><tr id="fin-summary-thead"></tr></thead>
+        <tbody id="fin-summary-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- フィルター＆ソートバー -->
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:9px;border:1px solid #e5e5e5;">
     <span style="font-size:11px;color:#666;">絞り込み：</span>
@@ -302,13 +313,15 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
     </select>
   </div>
   <!-- 作品リスト -->
-  <div id="fin-list-view" class="fin-list" style="margin-bottom:16px;"></div>
+  <div id="fin-list-view" class="fin-list" style="display:none;"></div>
   <!-- 詳細パネル -->
   <div id="fin-content" class="hidden">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <button class="btn btn-sm" onclick="closeFinDetail()">← 一覧に戻る</button>
-      <span id="fin-detail-title" style="font-size:14px;font-weight:700;"></span>
+      <span id="fin-detail-title" style="font-size:14px;font-weight:700;flex:1;"></span>
+      <button class="btn btn-sm" onclick="toggleFinDetail()" id="fin-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
+      <button class="btn btn-sm" onclick="closeFinDetail()" style="font-size:14px;padding:1px 8px;line-height:1.4;">×</button>
     </div>
+    <div id="fin-detail-inner">
     <div class="metric-grid" id="fin-metrics"></div>
     <div class="sub-tab-bar">
       <button class="sub-tab active" onclick="switchSubTab('cost',this)">制作費用</button>
@@ -353,9 +366,10 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
         <div id="be-box"></div>
       </div>
     </div>
-  </div>
-</div>
-</div>
+  </div><!-- /fin-detail-inner -->
+  </div><!-- /fin-content -->
+</div><!-- /page-finance -->
+</div><!-- /app -->
 
 
 <script>
@@ -711,12 +725,43 @@ function saveEditWork(){
 }
 
 let summaryOpen=true;
-let openWorkIds=new Set(); // クリックで展開中の作品ID
+let openWorkIds=new Set();
+let histOpenIds=new Set();
+
+// サマリーテーブルのソート状態
+let progSortCol=null, progSortAsc=true;
+let finSortCol=null, finSortAsc=true;
+let finSummaryOpen=true;
+let finDetailOpen=true;
 
 function toggleSummary(){
   summaryOpen=!summaryOpen;
   document.getElementById('summary-body').style.display=summaryOpen?'':'none';
   document.getElementById('summary-toggle-btn').textContent=summaryOpen?'▲ 折りたたむ':'▼ 展開する';
+}
+
+function toggleFinSummary(){
+  finSummaryOpen=!finSummaryOpen;
+  document.getElementById('fin-summary-body').style.display=finSummaryOpen?'':'none';
+  document.getElementById('fin-summary-toggle-btn').textContent=finSummaryOpen?'▲ 折りたたむ':'▼ 展開する';
+}
+
+function toggleFinDetail(){
+  finDetailOpen=!finDetailOpen;
+  document.getElementById('fin-detail-inner').style.display=finDetailOpen?'':'none';
+  document.getElementById('fin-toggle-btn').textContent=finDetailOpen?'▲ 折りたたむ':'▼ 展開する';
+}
+
+function sortProgSummary(col){
+  if(progSortCol===col) progSortAsc=!progSortAsc;
+  else{progSortCol=col;progSortAsc=true;}
+  renderWorks();
+}
+
+// ソート可能なヘッダーセル生成
+function thSort(label,col,currentCol,asc,fn){
+  const arrow=currentCol===col?(asc?'▲':'▼'):'⇅';
+  return`<th style="cursor:pointer;user-select:none;white-space:nowrap;" onclick="${fn}('${col}')">${label} <span style="font-size:9px;color:#aaa;">${arrow}</span></th>`;
 }
 
 function toggleWorkDetail(id){
@@ -738,12 +783,41 @@ function renderWorks(){
     return true;
   });
 
+  // サマリーテーブルヘッダー（ソート可能）
+  const theadRow=document.getElementById('summary-thead-row');
+  if(theadRow){
+    theadRow.innerHTML=
+      thSort('パートナー','partner',progSortCol,progSortAsc,'sortProgSummary')+
+      thSort('作品名','title',progSortCol,progSortAsc,'sortProgSummary')+
+      thSort('ジャンル','genre',progSortCol,progSortAsc,'sortProgSummary')+
+      thSort('全話数','totalEps',progSortCol,progSortAsc,'sortProgSummary')+
+      thSort('連載開始','startDate',progSortCol,progSortAsc,'sortProgSummary')+
+      STAGES.map((s,i)=>thSort(s,'stage'+i,progSortCol,progSortAsc,'sortProgSummary')).join('');
+  }
+
+  // ソート適用
+  let sortedList=[...list];
+  if(progSortCol){
+    sortedList.sort((a,b)=>{
+      let av,bv;
+      if(progSortCol==='totalEps'){av=a.totalEps;bv=b.totalEps;}
+      else if(progSortCol.startsWith('stage')){
+        const si=parseInt(progSortCol.replace('stage',''));
+        av=a.progress[a.progress.length-1][si]||0;
+        bv=b.progress[b.progress.length-1][si]||0;
+      }else{av=(a[progSortCol]||'').toLowerCase();bv=(b[progSortCol]||'').toLowerCase();}
+      if(av<bv)return progSortAsc?-1:1;
+      if(av>bv)return progSortAsc?1:-1;
+      return 0;
+    });
+  }
+
   // サマリーテーブル
   const tbody=document.getElementById('summary-tbody');
-  if(!list.length){
+  if(!sortedList.length){
     tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;color:#888;padding:16px;">該当する作品がありません</td></tr>`;
   } else {
-    tbody.innerHTML=list.map(w=>{
+    tbody.innerHTML=sortedList.map(w=>{
       const cur=w.progress[w.progress.length-1];
       const isOpen=openWorkIds.has(w.id);
       const stageCells=STAGES.map((s,i)=>{
@@ -778,6 +852,10 @@ function renderWorks(){
     openList.forEach(w=>{
       if(w.progress.length>1)setTimeout(()=>drawWeekChart(w),0);
       if(w.contractDate&&w.startDate)setTimeout(()=>drawSchedChart(w),0);
+      // 制作管理パネルの開閉状態を復元
+      if(histOpenIds.has(w.id)){
+        setTimeout(()=>{const p=document.getElementById('hist-'+w.id);if(p)p.classList.remove('hidden');},30);
+      }
     });
   }
 }
@@ -898,7 +976,12 @@ function buildHistPanel(w){
   return html;
 }
 
+
+// デバウンス付き自動保存（入力中に連続で叩かない）
+
 function toggleHist(id){
+  if(histOpenIds.has(id)) histOpenIds.delete(id);
+  else histOpenIds.add(id);
   const panel=document.getElementById('hist-'+id);
   if(panel) panel.classList.toggle('hidden');
 }
@@ -916,8 +999,8 @@ function recordWeek(id){
   w.histDates.push(today());
   if(w.progress.length>10){w.progress.shift();w.histDates.shift();}
   openWorkIds.add(id);
+  histOpenIds.add(id);
   renderWorks();
-  setTimeout(()=>{const p=document.getElementById('hist-'+id);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function editSnap(wid,si,stg,val){const w=works.find(x=>x.id===wid);if(w){w.progress[si][stg]=parseInt(val)||0;debouncedSync();}}
@@ -927,14 +1010,14 @@ function delSnap(wid,si){
   if(w.progress.length<=1){alert('最低1件の記録が必要です');return;}
   w.progress.splice(si,1);w.histDates.splice(si,1);
   openWorkIds.add(wid);
+  histOpenIds.add(wid);
   renderWorks();
-  setTimeout(()=>{const p=document.getElementById('hist-'+wid);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function applyLatest(wid){
   openWorkIds.add(wid);
+  histOpenIds.add(wid);
   renderWorks();
-  setTimeout(()=>{const p=document.getElementById('hist-'+wid);if(p)p.classList.remove('hidden');},50);
   if(syncEnabled) syncToSheets();
 }
 function updProg(id,si,val){const w=works.find(x=>x.id===id);if(w){w.progress[w.progress.length-1][si]=parseInt(val)||0;debouncedSync();}}
@@ -1207,6 +1290,69 @@ function drawSchedChart(w){
   });
 }
 
+function sortFinSummary(col){
+  if(finSortCol===col) finSortAsc=!finSortAsc;
+  else{finSortCol=col;finSortAsc=true;}
+  renderFinSummary();
+}
+
+function renderFinSummary(){
+  const thead=document.getElementById('fin-summary-thead');
+  const tbody=document.getElementById('fin-summary-tbody');
+  if(!thead||!tbody)return;
+
+  thead.innerHTML=
+    thSort('パートナー','partner',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('作品名','title',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('全話数','totalEps',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('連載開始','startDate',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('MG','mg',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('制作費合計','cost',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('累計売上','gross',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('自社収益','net',finSortCol,finSortAsc,'sortFinSummary')+
+    thSort('損益','profit',finSortCol,finSortAsc,'sortFinSummary');
+
+  let list=[...works];
+  if(finSortCol){
+    list.sort((a,b)=>{
+      const ca=calcTotalCost(a),ra=calcRevSummary(a);
+      const cb=calcTotalCost(b),rb=calcRevSummary(b);
+      const vals={
+        partner:[a.partner||'',b.partner||''],
+        title:[a.title||'',b.title||''],
+        totalEps:[a.totalEps,b.totalEps],
+        startDate:[a.startDate||'',b.startDate||''],
+        mg:[mgJPY(a),mgJPY(b)],
+        cost:[ca.total,cb.total],
+        gross:[ra.gross,rb.gross],
+        net:[ra.net,rb.net],
+        profit:[ra.net-ca.total,rb.net-cb.total]
+      };
+      const [av,bv]=vals[finSortCol]||[0,0];
+      if(av<bv)return finSortAsc?-1:1;
+      if(av>bv)return finSortAsc?1:-1;
+      return 0;
+    });
+  }
+
+  tbody.innerHTML=list.map(w=>{
+    const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+    const isSelected=w.id===selectedWorkId;
+    const profColor=pr>=0?'#166534':'#991b1b';
+    return`<tr class="sum-row${isSelected?' selected':''}" onclick="openFinDetail(${w.id})">
+      <td>${w.partner||'–'}</td>
+      <td style="font-weight:600;">${w.title}</td>
+      <td style="text-align:center;">${w.totalEps}話</td>
+      <td>${w.startDate||'–'}</td>
+      <td style="text-align:right;">¥${Math.round(mgJPY(w)/10000)}万</td>
+      <td style="text-align:right;">¥${Math.round(ct.total/10000)}万</td>
+      <td style="text-align:right;">¥${Math.round(rv.gross/10000)}万</td>
+      <td style="text-align:right;">¥${Math.round(rv.net/10000)}万</td>
+      <td style="text-align:right;font-weight:700;color:${profColor};">${pr>=0?'+':''}¥${Math.round(pr/10000)}万</td>
+    </tr>`;
+  }).join('');
+}
+
 /* --- Finance --- */
 let finFilter='all';
 let selectedWorkId=null;
@@ -1271,32 +1417,39 @@ function renderFinSel(){
 }
 
 function openFinDetail(id){
+  // 同じ作品をクリックしたら閉じる
+  if(selectedWorkId===id){
+    closeFinDetail();
+    return;
+  }
   selectedWorkId=id;
+  finDetailOpen=true;
   const w=works.find(x=>x.id===id);if(!w)return;
   document.getElementById('fin-content').classList.remove('hidden');
+  document.getElementById('fin-detail-inner').style.display='';
+  document.getElementById('fin-toggle-btn').textContent='▲ 折りたたむ';
   document.getElementById('fin-detail-title').textContent=w.title;
   document.getElementById('fin-info').textContent=`${w.title}　${w.genre||''}　全${w.totalEps}話　連載開始：${w.startDate||'–'}`;
   renderMetrics(w);
-  // reset subtabs
   activeSub='cost';
   document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.sub-page').forEach(p=>p.classList.add('hidden'));
   document.querySelector('.sub-tab').classList.add('active');
   document.getElementById('sub-cost').classList.remove('hidden');
   renderCostInputs(w);
-  // highlight selected card
-  renderFinSel();
-  // scroll to detail
+  renderFinSummary();
   setTimeout(()=>document.getElementById('fin-content').scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
 function closeFinDetail(){
   selectedWorkId=null;
   document.getElementById('fin-content').classList.add('hidden');
+  renderFinSummary();
 }
 function selWork(){return selectedWorkId?works.find(x=>x.id===selectedWorkId)||null:null;}
 function renderFinance(){
   buildFinFilter();
   renderFinSel();
+  renderFinSummary();
 }
 function renderMetrics(w){
   const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
