@@ -1864,6 +1864,27 @@ function renderCostInputs(w){
   const overhead=Math.round(varBase*(c.overhead?.pct||0)/100);
   const grand=mj+varBase+overhead;
 
+  // 外注・社内の内訳計算
+  function calcOutsourceCost(item){
+    if(!item.useOutsource) return 0;
+    const eps=Math.max(0,(item.outsource.epTo||0)-(item.outsource.epFrom||0)+1);
+    return (item.outsource.perEp||0)*eps;
+  }
+  function calcInhouseCost(item){
+    if(!item.useInhouse) return 0;
+    const eps=Math.max(0,(item.inhouse.epTo||0)-(item.inhouse.epFrom||0)+1);
+    return Math.round((item.inhouse.hrRate||0)*(item.inhouse.hrs||0)*eps);
+  }
+  // 外注合計（翻訳・翻訳チェック外注・写植外注・書影）
+  const outsourceTotal = trlTotal
+    + calcOutsourceCost(c.transCheck)
+    + calcOutsourceCost(c.typesetting)
+    + cvT;
+  // 社内合計（翻訳チェック社内・写植社内・FIX）
+  const inhouseTotal = calcInhouseCost(c.transCheck)
+    + calcInhouseCost(c.typesetting)
+    + fixTotal;
+
   // 担当者列の表示
   const assigneeCell=(val,onch)=>isEdit
     ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="担当者" style="font-size:11px;width:90px;"/>`
@@ -1949,8 +1970,18 @@ function renderCostInputs(w){
         </tr>
       </tbody>
       <tfoot>
+        <tr style="background:#f9f9f9;border-top:1px solid #eee;">
+          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#666;">外注費合計</td>
+          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#666;">¥${outsourceTotal.toLocaleString()}</td>
+          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#aaa;">翻訳・翻訳チェック外注・写植外注・書影</td>
+        </tr>
+        <tr style="background:#f0f7ff;border-top:1px solid #eee;">
+          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#1d4ed8;">社内費合計</td>
+          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#1d4ed8;">¥${inhouseTotal.toLocaleString()}</td>
+          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#93c5fd;">翻訳チェック社内・写植社内・FIX</td>
+        </tr>
         <tr style="background:#f9f9f9;border-top:2px solid #ddd;">
-          <td colspan="2" style="padding:10px 10px;font-size:13px;font-weight:700;">合計制作費用</td>
+          <td colspan="2" style="padding:10px 10px;font-size:13px;font-weight:700;">合計制作費用 <span style="font-size:10px;font-weight:400;color:#888;">（MG + 外注 + 社内 + 諸経費）</span></td>
           <td style="padding:10px 10px;text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</td>
           <td colspan="2"></td>
         </tr>
