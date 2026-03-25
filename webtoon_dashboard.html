@@ -503,26 +503,78 @@ let works=[
   {id:1,title:'恋するモンスター',genre:'ロマンス',partner:'A出版',totalEps:80,contractDate:'2026-01-05',contractEndDate:'2028-01-05',startDate:'2026-05-01',startEp:1,bufferTarget:15,
    progress:[[50,40,32,28,20,15],[65,55,45,38,30,22]],histDates:['2026-03-09','2026-03-23'],
    costs:{mg:{amount:5000000,currency:'KRW',rateDate:'2026-01-05',rateUsed:0.11},
-     translation:{perEp:8000},transCheck:{perEp:5000,type:'outsource',hrRate:3000,hrs:0.5},
-     typesetting:{perEp:6000,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.75},cover:{amount:80000}},
+     translation:{perEp:8000,assignee:''},
+     transCheck:{
+       outsource:{perEp:5000,epFrom:1,epTo:80,assignee:''},
+       inhouse:{hrRate:3000,hrs:0.5,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     typesetting:{
+       outsource:{perEp:6000,epFrom:1,epTo:80,assignee:''},
+       inhouse:{hrRate:3000,hrs:1,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     fix:{hrRate:3000,hrs:0.75,assignee:''},
+     cover:{amount:80000,assignee:''},
+     overhead:{pct:0}
+   },
    months:[{ym:'2026-05',gross:120000,delivery:84000,partnerRS:50},{ym:'2026-06',gross:98000,delivery:68600,partnerRS:50}]},
   {id:2,title:'転生したら魔王の娘',genre:'ファンタジー',partner:'B社',totalEps:120,contractDate:'2026-01-20',contractEndDate:'2029-01-20',startDate:'2026-07-01',startEp:1,bufferTarget:15,
    progress:[[30,22,15,10,8,5],[45,38,30,25,20,15]],histDates:['2026-03-09','2026-03-23'],
    costs:{mg:{amount:80000000,currency:'KRW',rateDate:'2026-01-20',rateUsed:0.11},
-     translation:{perEp:9000},transCheck:{perEp:0,type:'inhouse',hrRate:3000,hrs:0.5},
-     typesetting:{perEp:7000,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:1},cover:{amount:100000}},
+     translation:{perEp:9000,assignee:''},
+     transCheck:{
+       outsource:{perEp:0,epFrom:0,epTo:0,assignee:''},
+       inhouse:{hrRate:3000,hrs:0.5,epFrom:1,epTo:120,assignee:''},
+       useOutsource:false,useInhouse:true
+     },
+     typesetting:{
+       outsource:{perEp:7000,epFrom:1,epTo:120,assignee:''},
+       inhouse:{hrRate:3000,hrs:1,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     fix:{hrRate:3000,hrs:1,assignee:''},
+     cover:{amount:100000,assignee:''},
+     overhead:{pct:0}
+   },
    months:[]},
   {id:3,title:'サイレント・ヒーロー',genre:'アクション',partner:'A出版',totalEps:60,contractDate:'2026-02-10',contractEndDate:'2028-02-10',startDate:'2026-08-01',startEp:1,bufferTarget:15,
    progress:[[15,10,7,5,3,0],[25,18,12,9,6,0]],histDates:['2026-03-09','2026-03-23'],
    costs:{mg:{amount:3000000,currency:'JPY',rateDate:'2026-02-10',rateUsed:1},
-     translation:{perEp:7500},transCheck:{perEp:4500,type:'outsource',hrRate:3000,hrs:0.75},
-     typesetting:{perEp:0,type:'inhouse',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.5},cover:{amount:60000}},
+     translation:{perEp:7500,assignee:''},
+     transCheck:{
+       outsource:{perEp:4500,epFrom:1,epTo:60,assignee:''},
+       inhouse:{hrRate:3000,hrs:0.75,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     typesetting:{
+       outsource:{perEp:0,epFrom:0,epTo:0,assignee:''},
+       inhouse:{hrRate:3000,hrs:1,epFrom:1,epTo:60,assignee:''},
+       useOutsource:false,useInhouse:true
+     },
+     fix:{hrRate:3000,hrs:0.5,assignee:''},
+     cover:{amount:60000,assignee:''},
+     overhead:{pct:0}
+   },
    months:[]},
   {id:4,title:'クローンハート',genre:'SF',partner:'B社',totalEps:50,contractDate:'2026-01-15',contractEndDate:'2028-01-15',startDate:'2026-06-15',startEp:1,bufferTarget:15,
    progress:[[30,25,20,18,15,10],[42,36,30,26,20,14]],histDates:['2026-03-09','2026-03-23'],
    costs:{mg:{amount:2000000,currency:'JPY',rateDate:'2026-01-15',rateUsed:1},
-     translation:{perEp:8000},transCheck:{perEp:5000,type:'outsource',hrRate:3000,hrs:0.5},
-     typesetting:{perEp:6000,type:'outsource',hrRate:3000,hrs:0.75},fix:{hrRate:3000,hrs:0.5},cover:{amount:75000}},
+     translation:{perEp:8000,assignee:''},
+     transCheck:{
+       outsource:{perEp:5000,epFrom:1,epTo:50,assignee:''},
+       inhouse:{hrRate:3000,hrs:0.5,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     typesetting:{
+       outsource:{perEp:6000,epFrom:1,epTo:50,assignee:''},
+       inhouse:{hrRate:3000,hrs:0.75,epFrom:0,epTo:0,assignee:''},
+       useOutsource:true,useInhouse:false
+     },
+     fix:{hrRate:3000,hrs:0.5,assignee:''},
+     cover:{amount:75000,assignee:''},
+     overhead:{pct:0}
+   },
    months:[{ym:'2026-07',gross:200000,delivery:140000,partnerRS:45},{ym:'2026-08',gross:220000,delivery:154000,partnerRS:45},{ym:'2026-09',gross:240000,delivery:168000,partnerRS:45}]}
 ];
 let nextId=5,activeSub='cost',plChart=null;
@@ -530,13 +582,37 @@ let weekCharts={};
 
 function today(){return new Date().toISOString().slice(0,10);}
 function mgJPY(w){const m=w.costs.mg;return m.currency==='JPY'?m.amount||0:Math.round((m.amount||0)*(m.rateUsed||0.11));}
+
+// 翻訳チェック・写植の外注+社内合算コスト計算
+function calcDualCost(item,totalEps){
+  let total=0;
+  if(item.useOutsource){
+    const eps=Math.max(0,(item.outsource.epTo||0)-(item.outsource.epFrom||0)+1);
+    total+=(item.outsource.perEp||0)*eps;
+  }
+  if(item.useInhouse){
+    const eps=Math.max(0,(item.inhouse.epTo||0)-(item.inhouse.epFrom||0)+1);
+    total+=Math.round((item.inhouse.hrRate||0)*(item.inhouse.hrs||0)*eps);
+  }
+  return total;
+}
+// 1話あたり表示金額（外注+社内合算÷全話数）
+function perEpDisplay(item,totalEps){
+  const t=calcDualCost(item,totalEps);
+  return totalEps>0?Math.round(t/totalEps):0;
+}
+
 function calcTotalCost(w){
   const ep=w.totalEps,c=w.costs,mg=mgJPY(w);
   let v=(c.translation.perEp||0)*ep;
-  v+=c.transCheck.type==='inhouse'?(c.transCheck.hrRate||0)*(c.transCheck.hrs||0)*ep:(c.transCheck.perEp||0)*ep;
-  v+=c.typesetting.type==='inhouse'?(c.typesetting.hrRate||0)*(c.typesetting.hrs||0)*ep:(c.typesetting.perEp||0)*ep;
-  v+=(c.fix.hrRate||0)*(c.fix.hrs||0)*ep+(c.cover.amount||0);
-  return{mg,varC:v,total:mg+v};
+  v+=calcDualCost(c.transCheck,ep);
+  v+=calcDualCost(c.typesetting,ep);
+  v+=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0)*ep);
+  v+=(c.cover.amount||0);
+  // 諸経費（MG除く変動費の%）
+  const overhead=Math.round(v*(c.overhead?.pct||0)/100);
+  v+=overhead;
+  return{mg,varC:v,total:mg+v,overhead};
 }
 function calcRevSummary(w){
   const ms=w.months||[];
@@ -584,9 +660,11 @@ function addWork(){
     startEp:parseInt(document.getElementById('nw-startep').value)||1,
     bufferTarget:parseInt(document.getElementById('nw-buf').value)||15,
     progress:[[0,0,0,0,0,0]],histDates:[today()],
-    costs:{mg:{amount:0,currency:'JPY',rateDate:'',rateUsed:1},translation:{perEp:0},
-      transCheck:{perEp:0,type:'outsource',hrRate:3000,hrs:0.5},
-      typesetting:{perEp:0,type:'outsource',hrRate:3000,hrs:1},fix:{hrRate:3000,hrs:0.5},cover:{amount:0}},months:[]});
+    costs:{mg:{amount:0,currency:'JPY',rateDate:'',rateUsed:1},
+      translation:{perEp:0,assignee:''},
+      transCheck:{outsource:{perEp:0,epFrom:1,epTo:50,assignee:''},inhouse:{hrRate:3000,hrs:0.5,epFrom:0,epTo:0,assignee:''},useOutsource:true,useInhouse:false},
+      typesetting:{outsource:{perEp:0,epFrom:1,epTo:50,assignee:''},inhouse:{hrRate:3000,hrs:1,epFrom:0,epTo:0,assignee:''},useOutsource:true,useInhouse:false},
+      fix:{hrRate:3000,hrs:0.5,assignee:''},cover:{amount:0,assignee:''},overhead:{pct:0}},months:[]});
   document.getElementById('nw-title').value='';
   document.getElementById('add-form').classList.add('hidden');
   renderWorks();
@@ -1357,9 +1435,30 @@ function renderFinSummary(){
 let finFilter='all';
 let selectedWorkId=null;
 
+function getAllAssignees(){
+  const set=new Set();
+  works.forEach(w=>{
+    const c=w.costs;
+    if(c.translation?.assignee) set.add(c.translation.assignee);
+    if(c.transCheck?.outsource?.assignee) set.add(c.transCheck.outsource.assignee);
+    if(c.transCheck?.inhouse?.assignee) set.add(c.transCheck.inhouse.assignee);
+    if(c.typesetting?.outsource?.assignee) set.add(c.typesetting.outsource.assignee);
+    if(c.typesetting?.inhouse?.assignee) set.add(c.typesetting.inhouse.assignee);
+    if(c.fix?.assignee) set.add(c.fix.assignee);
+    if(c.cover?.assignee) set.add(c.cover.assignee);
+  });
+  set.delete('');
+  return [...set];
+}
+
 function buildFinFilter(){
   const pts=[...new Set(works.map(w=>w.partner||'').filter(Boolean))];
-  const filters=[{k:'all',l:'すべて'},{k:'profit',l:'黒字のみ'},...pts.map(p=>({k:'p:'+p,l:p}))];
+  const assignees=getAllAssignees();
+  const filters=[
+    {k:'all',l:'すべて'},{k:'profit',l:'黒字のみ'},
+    ...pts.map(p=>({k:'p:'+p,l:p})),
+    ...assignees.map(a=>({k:'a:'+a,l:'👤 '+a}))
+  ];
   document.getElementById('fin-fbar').innerHTML=filters.map(f=>`<button class="ffbtn${f.k===finFilter?' active':''}" onclick="applyFF('${f.k}',this)">${f.l}</button>`).join('');
 }
 function applyFF(k,el){
@@ -1368,11 +1467,17 @@ function applyFF(k,el){
   el.classList.add('active');
   renderFinSel();
 }
+function workHasAssignee(w,name){
+  const c=w.costs;
+  return [c.translation?.assignee,c.transCheck?.outsource?.assignee,c.transCheck?.inhouse?.assignee,
+    c.typesetting?.outsource?.assignee,c.typesetting?.inhouse?.assignee,c.fix?.assignee,c.cover?.assignee]
+    .some(a=>a===name);
+}
 function renderFinSel(){
   let list=[...works];
-  // filter
   if(finFilter==='profit')list=list.filter(w=>calcRevSummary(w).net-calcTotalCost(w).total>=0);
   if(finFilter.startsWith('p:'))list=list.filter(w=>(w.partner||'')===(finFilter.slice(2)));
+  if(finFilter.startsWith('a:'))list=list.filter(w=>workHasAssignee(w,finFilter.slice(2)));
   // sort
   const sort=document.getElementById('fin-sort').value;
   if(sort==='top-rev')list.sort((a,b)=>calcRevSummary(b).gross-calcRevSummary(a).gross);
@@ -1478,63 +1583,253 @@ function renderCostInputs(w){
   const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
   const isEdit=!!costEditMode[w.id];
 
-  // 編集/保存ボタン
   const editBtn=isEdit
     ?`<button class="btn btn-sm btn-primary" onclick="saveCostEdit(${w.id})" style="font-size:12px;">💾 保存</button>`
     :`<button class="btn btn-sm" onclick="toggleCostEdit(${w.id})" style="font-size:12px;">✏️ 編集</button>`;
 
-  // 値の表示ヘルパー（編集モード:input、閲覧モード:テキスト）
-  const numField=(val,onch,style='')=>isEdit
-    ?`<input class="c-in" type="number" value="${val}" onchange="${onch}" style="${style}"/>`
-    :`<span style="font-size:13px;font-weight:600;">${Number(val).toLocaleString()}</span>`;
+  // 入力ヘルパー
+  const inp=(val,onch,style='',type='number')=>isEdit
+    ?`<input class="c-in" type="${type}" value="${val}" onchange="${onch}" style="${style}"/>`
+    :`<span style="font-size:13px;font-weight:600;text-align:right;display:block;">${type==='number'?Number(val).toLocaleString():val}</span>`;
+  const textInp=(val,onch,ph='')=>isEdit
+    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="${ph}" style="font-size:11px;"/>`
+    :(val?`<span style="font-size:11px;color:#555;">${val}</span>`:`<span style="font-size:11px;color:#ccc;">–</span>`);
 
-  const mgAmtField=isEdit
-    ?`<input class="c-in" type="number" value="${c.mg.amount||0}" onchange="setMG(${w.id},this.value)"/>`
-    :`<span style="font-size:13px;font-weight:600;">${(c.mg.amount||0).toLocaleString()}</span>`;
-
+  // MG
   const curBtns=isEdit
-    ?`<div class="cur-sel"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>`
-    :`<span style="font-size:11px;color:#888;margin-right:4px;">${c.mg.currency}</span>`;
-
-  const mgS=`${curBtns}${mgAmtField}
-    ${c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}（レート ${c.mg.rateUsed}）</div>`:''}`;
+    ?`<div class="cur-sel" style="margin-bottom:4px;max-width:108px;"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>`
+    :`<span style="font-size:11px;color:#888;">${c.mg.currency} </span>`;
+  const mgAmt=inp(c.mg.amount||0,`setMG(${w.id},this.value)`);
+  const mgKrw=c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}</div>`:'';
 
   // 翻訳チェック
-  const tcI=c.transCheck.type==='inhouse'
-    ?`<div class="ih">${numField(c.transCheck.hrRate||0,`setF(${w.id},'transCheck','hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.transCheck.hrs||0,`setF(${w.id},'transCheck','hrs',this.value)`,'width:48px;')}<span>h/話</span></div>`
-    :numField(c.transCheck.perEp||0,`setF(${w.id},'transCheck','perEp',this.value)`);
-  const tcT=c.transCheck.type==='inhouse'?Math.round((c.transCheck.hrRate||0)*(c.transCheck.hrs||0)*ep):(c.transCheck.perEp||0)*ep;
+  const tc=c.transCheck;
+  const tcPerEp=perEpDisplay(tc,ep);
+  const tcTotal=calcDualCost(tc,ep);
+  function tcBlock(){
+    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tcPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
+    let html='';
+    if(tc.useOutsource){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${tc.outsource.perEp||0}" onchange="setDual(${w.id},'transCheck','outsource','perEp',this.value)" style="width:70px;" placeholder="円/話"/>
+          <span style="font-size:10px;color:#888;">円/話　第</span>
+          <input class="c-in" type="number" value="${tc.outsource.epFrom||1}" onchange="setDual(${w.id},'transCheck','outsource','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${tc.outsource.epTo||ep}" onchange="setDual(${w.id},'transCheck','outsource','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(tc.outsource.assignee,`setDual(${w.id},'transCheck','outsource','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    if(tc.useInhouse){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
+        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${tc.inhouse.hrRate||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrRate',this.value)" style="width:60px;" placeholder="円/h"/>
+          <span style="font-size:10px;color:#888;">円/h×</span>
+          <input class="c-in" type="number" step="0.25" value="${tc.inhouse.hrs||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrs',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">h　第</span>
+          <input class="c-in" type="number" value="${tc.inhouse.epFrom||1}" onchange="setDual(${w.id},'transCheck','inhouse','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${tc.inhouse.epTo||ep}" onchange="setDual(${w.id},'transCheck','inhouse','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(tc.inhouse.assignee,`setDual(${w.id},'transCheck','inhouse','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
+      ${!tc.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
+      ${!tc.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
+    </div>`;
+    return html;
+  }
 
   // 写植
-  const tsI=c.typesetting.type==='inhouse'
-    ?`<div class="ih">${numField(c.typesetting.hrRate||0,`setF(${w.id},'typesetting','hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.typesetting.hrs||0,`setF(${w.id},'typesetting','hrs',this.value)`,'width:48px;')}<span>h/話</span></div>`
-    :numField(c.typesetting.perEp||0,`setF(${w.id},'typesetting','perEp',this.value)`);
-  const tsT=c.typesetting.type==='inhouse'?Math.round((c.typesetting.hrRate||0)*(c.typesetting.hrs||0)*ep):(c.typesetting.perEp||0)*ep;
+  const ts=c.typesetting;
+  const tsPerEp=perEpDisplay(ts,ep);
+  const tsTotal=calcDualCost(ts,ep);
+  function tsBlock(){
+    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tsPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
+    let html='';
+    if(ts.useOutsource){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${ts.outsource.perEp||0}" onchange="setDual(${w.id},'typesetting','outsource','perEp',this.value)" style="width:70px;"/>
+          <span style="font-size:10px;color:#888;">円/話　第</span>
+          <input class="c-in" type="number" value="${ts.outsource.epFrom||1}" onchange="setDual(${w.id},'typesetting','outsource','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${ts.outsource.epTo||ep}" onchange="setDual(${w.id},'typesetting','outsource','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(ts.outsource.assignee,`setDual(${w.id},'typesetting','outsource','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    if(ts.useInhouse){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
+        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${ts.inhouse.hrRate||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrRate',this.value)" style="width:60px;"/>
+          <span style="font-size:10px;color:#888;">円/h×</span>
+          <input class="c-in" type="number" step="0.25" value="${ts.inhouse.hrs||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrs',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">h　第</span>
+          <input class="c-in" type="number" value="${ts.inhouse.epFrom||1}" onchange="setDual(${w.id},'typesetting','inhouse','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${ts.inhouse.epTo||ep}" onchange="setDual(${w.id},'typesetting','inhouse','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(ts.inhouse.assignee,`setDual(${w.id},'typesetting','inhouse','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
+      ${!ts.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
+      ${!ts.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
+    </div>`;
+    return html;
+  }
 
-  const fixT=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0)*ep);
-  const trlT=(c.translation.perEp||0)*ep;
+  const fixPerEp=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0));
+  const fixTotal=fixPerEp*ep;
+  const trlTotal=(c.translation.perEp||0)*ep;
   const cvT=c.cover.amount||0;
-  const grand=mj+trlT+tcT+tsT+fixT+cvT;
+  const varBase=trlTotal+tcTotal+tsTotal+fixTotal+cvT;
+  const overhead=Math.round(varBase*(c.overhead?.pct||0)/100);
+  const grand=mj+varBase+overhead;
 
-  // 外注/社内トグル（編集モードのみ）
-  const tcToggle=isEdit?`<div class="tog-g"><button class="tog ${c.transCheck.type==='outsource'?'active':''}" onclick="setType(${w.id},'transCheck','outsource')">外注</button><button class="tog ${c.transCheck.type==='inhouse'?'active':''}" onclick="setType(${w.id},'transCheck','inhouse')">社内</button></div>`:`<span style="font-size:11px;color:#aaa;">${c.transCheck.type==='inhouse'?'社内':'外注'}</span>`;
-  const tsToggle=isEdit?`<div class="tog-g"><button class="tog ${c.typesetting.type==='outsource'?'active':''}" onclick="setType(${w.id},'typesetting','outsource')">外注</button><button class="tog ${c.typesetting.type==='inhouse'?'active':''}" onclick="setType(${w.id},'typesetting','inhouse')">社内</button></div>`:`<span style="font-size:11px;color:#aaa;">${c.typesetting.type==='inhouse'?'社内':'外注'}</span>`;
+  // 担当者列の表示
+  const assigneeCell=(val,onch)=>isEdit
+    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="担当者" style="font-size:11px;width:90px;"/>`
+    :(val?`<span style="font-size:11px;">${val}</span>`:'<span style="font-size:11px;color:#ccc;">–</span>');
+
+  // 担当タイプ表示
+  function typeLabel(item){
+    const parts=[];
+    if(item.useOutsource)parts.push('外注');
+    if(item.useInhouse)parts.push('社内');
+    return parts.length?parts.join('/'):'–';
+  }
 
   document.getElementById('cost-inputs').innerHTML=`
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${editBtn}</div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></div><div>${mgS}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${mj.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">固定</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳</div><div style="font-size:10px;color:#888;">円/話</div></div><div>${numField(c.translation.perEp||0,`setF(${w.id},'translation','perEp',this.value)`)}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${trlT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">翻訳チェック</div><div style="font-size:10px;color:#888;">${c.transCheck.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tcI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tcT.toLocaleString()}</div><div>${tcToggle}</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植</div><div style="font-size:10px;color:#888;">${c.typesetting.type==='inhouse'?'円/h × h/話':'円/話'}</div></div><div>${tsI}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${tsT.toLocaleString()}</div><div>${tsToggle}</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">円/h × h/話</div></div><div><div class="ih">${numField(c.fix.hrRate||0,`setFix(${w.id},'hrRate',this.value)`,'width:62px;')}<span>円/h ×</span>${numField(c.fix.hrs||0,`setFix(${w.id},'hrs',this.value)`,'width:48px;')}<span>h/話</span></div></div><div style="text-align:right;font-size:13px;font-weight:700;">¥${fixT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">社内</div></div>
-    <div class="cost-row"><div><div style="font-size:13px;font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></div><div>${numField(cvT,`setF(${w.id},'cover','amount',this.value)`)}</div><div style="text-align:right;font-size:13px;font-weight:700;">¥${cvT.toLocaleString()}</div><div style="font-size:11px;color:#aaa;text-align:center;">外注</div></div>
-    <div class="cost-total-row"><div style="font-size:13px;font-weight:700;padding-left:4px;">合計制作費用</div><div></div><div style="text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</div><div></div></div>`;
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#fafafa;">
+        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">項目</th>
+        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">1話あたり</th>
+        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">合計</th>
+        <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当</th>
+        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当者</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></td>
+          <td style="padding:8px 10px;text-align:right;">${curBtns}${mgAmt}${mgKrw}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${mj.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">固定</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳</div></td>
+          <td style="padding:8px 10px;text-align:right;">${inp(c.translation.perEp||0,`setF(${w.id},'translation','perEp',this.value)`,'width:80px;text-align:right;')}<span style="font-size:10px;color:#888;">円/話</span></td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${trlTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.translation.assignee,`setF(${w.id},'translation','assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳チェック</div></td>
+          <td style="padding:8px 10px;">${tcBlock()}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tcTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(tc)}</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">写植</div></td>
+          <td style="padding:8px 10px;">${tsBlock()}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tsTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(ts)}</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">社内</div></td>
+          <td style="padding:8px 10px;">
+            ${isEdit?`<div class="ih">${inp(c.fix.hrRate||0,`setFix(${w.id},'hrRate',this.value)`,'width:60px;')}<span style="font-size:10px;color:#888;">円/h×</span>${inp(c.fix.hrs||0,`setFix(${w.id},'hrs',this.value)`,'width:46px;')}<span style="font-size:10px;color:#888;">h</span></div>`
+            :`<div style="text-align:right;font-size:13px;font-weight:600;">¥${fixPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`}
+          </td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${fixTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">社内</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.fix.assignee,`setFix(${w.id},'assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></td>
+          <td style="padding:8px 10px;text-align:right;">${inp(cvT,`setF(${w.id},'cover','amount',this.value)`)}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${cvT.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.cover.assignee,`setF(${w.id},'cover','assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;background:#fffbf0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">諸経費・その他人件費</div><div style="font-size:10px;color:#888;">MG除く変動費の%</div></td>
+          <td style="padding:8px 10px;text-align:right;">
+            ${isEdit
+              ?`<div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">${inp(c.overhead?.pct||0,`setOverhead(${w.id},this.value)`,'width:54px;text-align:right;')}<span style="font-size:12px;color:#888;">%</span></div>`
+              :`<span style="font-size:13px;font-weight:600;">${c.overhead?.pct||0}%</span>`}
+          </td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${overhead.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">–</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="background:#f9f9f9;border-top:2px solid #ddd;">
+          <td colspan="2" style="padding:10px 10px;font-size:13px;font-weight:700;">合計制作費用</td>
+          <td style="padding:10px 10px;text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>`;
 }
 function setCur(id,c){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.currency=c;renderCostInputs(w);renderMetrics(w);debouncedSync();}
 function setMG(id,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.amount=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
-function setF(id,k,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs[k][f]=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setF(id,k,f,v){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  if(typeof w.costs[k]==='object') w.costs[k][f]=typeof v==='string'&&isNaN(v)?v:(parseFloat(v)||0);
+  renderCostInputs(w);renderMetrics(w);debouncedSync();
+}
+function setFix(id,f,v){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  w.costs.fix[f]=typeof v==='string'&&isNaN(v)?v:(parseFloat(v)||0);
+  renderCostInputs(w);renderMetrics(w);debouncedSync();
+}
 function setType(id,k,t){const w=works.find(x=>x.id===id);if(!w)return;w.costs[k].type=t;renderCostInputs(w);renderMetrics(w);debouncedSync();}
-function setFix(id,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs.fix[f]=parseFloat(v)||0;renderCostInputs(w);renderMetrics(w);debouncedSync();}
+function setDual(id,key,side,field,v){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  const val=isNaN(v)?v:(parseFloat(v)||0);
+  w.costs[key][side][field]=val;
+  renderCostInputs(w);renderMetrics(w);debouncedSync();
+}
+function setDualBool(id,key,field,val){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  w.costs[key][field]=val;
+  // 追加時はデフォルト話数をセット
+  if(val===true){
+    const side=field==='useOutsource'?'outsource':'inhouse';
+    if(!w.costs[key][side].epFrom) w.costs[key][side].epFrom=1;
+    if(!w.costs[key][side].epTo)   w.costs[key][side].epTo=w.totalEps;
+  }
+  renderCostInputs(w);renderMetrics(w);debouncedSync();
+}
+function setOverhead(id,v){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  if(!w.costs.overhead)w.costs.overhead={pct:0};
+  w.costs.overhead.pct=parseFloat(v)||0;
+  renderCostInputs(w);renderMetrics(w);debouncedSync();
+}
 
 function renderRevTable(w){
   document.getElementById('rev-tbody').innerHTML=(w.months||[]).map((m,i)=>{
