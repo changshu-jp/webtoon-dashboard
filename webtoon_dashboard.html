@@ -1627,7 +1627,15 @@ function renderRevPLHtml(w){
 
 // カード内のコスト部分だけを更新（全体再描画を避ける）
 function refreshCostArea(w){
-  const target=document.getElementById('cost-inputs-'+w.id);
+  // cost-inputs-{id} が存在しない場合、fin-cost-{id} から生成する
+  let target=document.getElementById('cost-inputs-'+w.id);
+  if(!target){
+    const container=document.getElementById('fin-cost-'+w.id);
+    if(container){
+      container.innerHTML='<div id="cost-inputs-'+w.id+'"></div>';
+      target=document.getElementById('cost-inputs-'+w.id);
+    }
+  }
   if(target){
     // カード内のメトリクスも更新
     const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
@@ -1642,17 +1650,20 @@ function refreshCostArea(w){
         <div class="metric-card"><div class="metric-label">営業損益</div><div class="metric-value" style="color:${profColor};">¥${Math.round(pr/10000)}万</div><div class="metric-sub">${profLabel}</div></div>`;
     }
     renderCostInputsById(w);
-  } else {
-    // フォールバック: 旧来の単一cost-inputs
-    const single=document.getElementById('cost-inputs');
-    if(single) renderCostInputs(w);
   }
 }
 
 function toggleCostEdit(wid){
   costEditMode[wid]=!costEditMode[wid];
   const w=works.find(x=>x.id===wid);if(!w)return;
-  refreshCostArea(w);
+  // カードが閉じていたら開く
+  if(!finCardOpen[wid]){
+    finCardOpen[wid]=true;
+    finCardTab[wid]='cost';
+    renderFinCards();
+  } else {
+    refreshCostArea(w);
+  }
 }
 
 function saveCostEdit(wid){
@@ -1879,7 +1890,9 @@ function renderCostInputs(w){
     return parts.length?parts.join('/'):'–';
   }
 
-  document.getElementById('cost-inputs').innerHTML=`
+  const costEl=document.getElementById('cost-inputs');
+  if(!costEl) return;
+  costEl.innerHTML=`
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${editBtn}</div>
     <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
