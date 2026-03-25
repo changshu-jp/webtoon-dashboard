@@ -1741,19 +1741,6 @@ function renderMetrics(w){
 }
 let costEditMode={}; // workId → true/false
 
-function toggleCostEdit(wid){
-  costEditMode[wid]=!costEditMode[wid];
-  const w=works.find(x=>x.id===wid);if(!w)return;
-  renderCostInputs(w);
-}
-
-function saveCostEdit(wid){
-  costEditMode[wid]=false;
-  const w=works.find(x=>x.id===wid);if(!w)return;
-  renderCostInputs(w);renderMetrics(w);
-  if(syncEnabled) syncToSheets();
-}
-
 function renderCostInputs(w){
   const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
   const isEdit=!!costEditMode[w.id];
