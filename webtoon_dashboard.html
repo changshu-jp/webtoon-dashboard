@@ -311,63 +311,19 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
       <option value="eps">話数順（多い順）</option>
       <option value="mg">MG順（高い順）</option>
     </select>
+    <span style="font-size:11px;color:#666;margin-left:10px;">担当者検索：</span>
+    <input id="fin-assignee-search" type="text" placeholder="担当者名を入力" oninput="renderFinCards()"
+      style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;width:130px;"/>
   </div>
-  <!-- 作品リスト -->
-  <div id="fin-list-view" class="fin-list" style="display:none;"></div>
-  <!-- 詳細パネル -->
-  <div id="fin-content" class="hidden">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <span id="fin-detail-title" style="font-size:14px;font-weight:700;flex:1;"></span>
-      <button class="btn btn-sm" onclick="toggleFinDetail()" id="fin-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
-      <button class="btn btn-sm" onclick="closeFinDetail()" style="font-size:14px;padding:1px 8px;line-height:1.4;">×</button>
-    </div>
-    <div id="fin-detail-inner">
-    <div class="metric-grid" id="fin-metrics"></div>
-    <div class="sub-tab-bar">
-      <button class="sub-tab active" onclick="switchSubTab('cost',this)">制作費用</button>
-      <button class="sub-tab" onclick="switchSubTab('revenue',this)">収益</button>
-      <button class="sub-tab" onclick="switchSubTab('graph',this)">収支グラフ</button>
-    </div>
-    <div id="sub-cost" class="sub-page">
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#444;" id="fin-info"></div>
-        <div class="cost-head">
-          <div class="col-h" style="text-align:left;">項目</div>
-          <div class="col-h">金額</div>
-          <div class="col-h">合計</div>
-          <div class="col-h">担当</div>
-        </div>
-        <div id="cost-inputs"></div>
-      </div>
-    </div>
-    <div id="sub-revenue" class="sub-page hidden">
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">月別収益</div>
-        <div style="overflow-x:auto;">
-          <table class="month-table">
-            <thead><tr>
-              <th style="text-align:left;">年月</th>
-              <th>配信売上</th><th>配信収益</th><th>パートナーRS(%)</th><th>自社収益</th><th></th>
-            </tr></thead>
-            <tbody id="rev-tbody"></tbody>
-          </table>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-          <input class="fi" id="new-month" type="month" style="width:150px;font-size:12px;padding:5px 8px;"/>
-          <button class="btn btn-sm btn-primary" onclick="addMonthRow()">+ 月を追加</button>
-        </div>
-        <div class="pl-sum" id="rev-pl"></div>
-      </div>
-    </div>
-    <div id="sub-graph" class="sub-page hidden">
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">累計収支グラフ</div>
-        <div class="graph-wrap"><canvas id="pl-chart"></canvas></div>
-        <div id="be-box"></div>
-      </div>
-    </div>
-  </div><!-- /fin-detail-inner -->
-  </div><!-- /fin-content -->
+  <!-- 作品カード一覧（全作品を縦に並べる） -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <span id="fin-card-count" style="font-size:12px;color:#888;"></span>
+    <button class="btn btn-sm" onclick="collapseAllFinCards()" style="font-size:11px;">すべて折りたたむ</button>
+  </div>
+  <div id="fin-cards-list"></div>
+  <!-- 旧detailパネル（非表示） -->
+  <div id="fin-list-view" style="display:none;"></div>
+  <div id="fin-content" class="hidden"></div>
 </div><!-- /page-finance -->
 </div><!-- /app -->
 
@@ -432,7 +388,9 @@ async function syncFromSheets(){
     trash=data.trash||trash;
     nextId=Math.max(5,...works.map(w=>w.id+1));
     renderWorks();
-    if(document.getElementById('page-finance').classList.contains('active'))renderFinSel();
+    if(document.getElementById('page-finance').classList.contains('active')){
+      renderFinSel();renderFinSummary();renderFinCards();
+    }
     updateTrashBadge();
     setSyncStatus('ok');
   }catch(e){
@@ -626,7 +584,7 @@ function switchTab(tab,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+tab).classList.add('active');
-  if(tab==='finance'){buildFinFilter();renderFinSel();renderFinSummary();}
+  if(tab==='finance'){buildFinFilter();renderFinSel();renderFinSummary();renderFinCards();}
 }
 function switchSubTab(tab,el){
   activeSub=tab;
@@ -1521,33 +1479,202 @@ function renderFinSel(){
   }
 }
 
-function openFinDetail(id){
-  // 同じ作品をクリックしたら閉じる
-  if(selectedWorkId===id){
-    closeFinDetail();
-    return;
-  }
-  selectedWorkId=id;
-  finDetailOpen=true;
-  const w=works.find(x=>x.id===id);if(!w)return;
-  document.getElementById('fin-content').classList.remove('hidden');
-  document.getElementById('fin-detail-inner').style.display='';
-  document.getElementById('fin-toggle-btn').textContent='▲ 折りたたむ';
-  document.getElementById('fin-detail-title').textContent=w.title;
-  document.getElementById('fin-info').textContent=`${w.title}　${w.genre||''}　全${w.totalEps}話　連載開始：${w.startDate||'–'}`;
-  renderMetrics(w);
-  activeSub='cost';
-  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.sub-page').forEach(p=>p.classList.add('hidden'));
-  document.querySelector('.sub-tab').classList.add('active');
-  document.getElementById('sub-cost').classList.remove('hidden');
+let finCardOpen={}; // workId→true/false (각 카드 펼침 상태)
+let finCardTab={}; // workId→'cost'|'revenue'|'graph'
+let finPlCharts={}; // workId→Chart instance
+
+function collapseAllFinCards(){
+  Object.keys(finCardOpen).forEach(id=>{finCardOpen[id]=false;});
+  renderFinCards();
+}
+
+function toggleFinCard(id){
+  finCardOpen[id]=!finCardOpen[id];
+  renderFinCards();
+}
+
+function switchFinCardTab(id,tab){
+  finCardTab[id]=tab;
+  finCardOpen[id]=true;
+  renderFinCards();
+  if(tab==='graph') setTimeout(()=>renderFinCardGraph(id),50);
+}
+
+function renderFinCards(){
+  const container=document.getElementById('fin-cards-list');
+  if(!container) return;
+
+  // フィルター&ソート
+  let list=[...works];
+  if(finFilter==='profit') list=list.filter(w=>calcRevSummary(w).net-calcTotalCost(w).total>=0);
+  if(finFilter.startsWith('p:')) list=list.filter(w=>(w.partner||'')===(finFilter.slice(2)));
+  if(finFilter.startsWith('a:')) list=list.filter(w=>workHasAssignee(w,finFilter.slice(2)));
+
+  // 担当者検索
+  const searchEl=document.getElementById('fin-assignee-search');
+  const searchVal=searchEl?searchEl.value.trim():'';
+  if(searchVal) list=list.filter(w=>workHasAssignee(w,searchVal)||
+    Object.values(w.costs||{}).some(v=>typeof v==='object'&&v.assignee&&v.assignee.includes(searchVal)));
+
+  const sort=document.getElementById('fin-sort').value;
+  if(sort==='top-rev') list.sort((a,b)=>calcRevSummary(b).gross-calcRevSummary(a).gross);
+  else if(sort==='start-date-new') list.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  else if(sort==='start-date-old') list.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  else if(sort==='eps') list.sort((a,b)=>b.totalEps-a.totalEps);
+  else if(sort==='mg') list.sort((a,b)=>mgJPY(b)-mgJPY(a));
+
+  const countEl=document.getElementById('fin-card-count');
+  if(countEl) countEl.textContent=`${list.length}件表示`;
+
+  container.innerHTML=list.map(w=>{
+    const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+    const isOpen=!!finCardOpen[w.id];
+    const tab=finCardTab[w.id]||'cost';
+    const profColor=pr>=0?'#166534':'#991b1b';
+    const profLabel=pr>=0?'黒字':'赤字';
+
+    const metricsHtml=`<div class="metric-grid" style="margin-bottom:12px;">
+      <div class="metric-card"><div class="metric-label">総制作費</div><div class="metric-value">¥${Math.round(ct.total/10000)}万</div><div class="metric-sub">MG込み</div></div>
+      <div class="metric-card"><div class="metric-label">累計配信売上</div><div class="metric-value">¥${Math.round(rv.gross/10000)}万</div><div class="metric-sub">RS控除前</div></div>
+      <div class="metric-card"><div class="metric-label">累計自社収益</div><div class="metric-value">¥${Math.round(rv.net/10000)}万</div><div class="metric-sub">RS控除後</div></div>
+      <div class="metric-card"><div class="metric-label">営業損益</div><div class="metric-value" style="color:${profColor};">¥${Math.round(pr/10000)}万</div><div class="metric-sub">${profLabel}</div></div>
+    </div>`;
+
+    const subTabs=`<div class="sub-tab-bar" style="margin-bottom:12px;">
+      <button class="sub-tab${tab==='cost'?' active':''}" onclick="switchFinCardTab(${w.id},'cost')">制作費用</button>
+      <button class="sub-tab${tab==='revenue'?' active':''}" onclick="switchFinCardTab(${w.id},'revenue')">収益</button>
+      <button class="sub-tab${tab==='graph'?' active':''}" onclick="switchFinCardTab(${w.id},'graph')">収支グラフ</button>
+    </div>`;
+
+    let bodyHtml='';
+    if(tab==='cost'){
+      bodyHtml=`<div id="fin-cost-${w.id}"></div>`;
+    } else if(tab==='revenue'){
+      const rows=(w.months||[]).map((m,i)=>{
+        const net=Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100));
+        return`<tr>
+          <td>${m.ym}</td>
+          <td><input class="m-in" type="number" value="${m.gross||0}" onchange="updM(${w.id},${i},'gross',this.value)"/>円</td>
+          <td><input class="m-in" type="number" value="${m.delivery||0}" onchange="updM(${w.id},${i},'delivery',this.value)"/>円</td>
+          <td><input class="m-in" style="width:52px;" type="number" value="${m.partnerRS||50}" onchange="updM(${w.id},${i},'partnerRS',this.value)"/>%</td>
+          <td style="font-weight:700;">¥${net.toLocaleString()}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="rmMonth(${w.id},${i})">×</button></td>
+        </tr>`;
+      }).join('');
+      const pl=renderRevPLHtml(w);
+      bodyHtml=`<div style="overflow-x:auto;"><table class="month-table">
+        <thead><tr><th style="text-align:left;">年月</th><th>配信売上</th><th>配信収益</th><th>パートナーRS(%)</th><th>自社収益</th><th></th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#aaa;padding:12px;">データなし</td></tr>'}</tbody>
+      </table></div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <input class="fi" id="new-month-${w.id}" type="month" style="width:150px;font-size:12px;padding:5px 8px;"/>
+        <button class="btn btn-sm btn-primary" onclick="addMonthRowById(${w.id})">+ 月を追加</button>
+      </div>
+      <div class="pl-sum" style="margin-top:12px;">${pl}</div>`;
+    } else if(tab==='graph'){
+      bodyHtml=`<div style="position:relative;height:260px;margin-bottom:10px;"><canvas id="fin-chart-${w.id}"></canvas></div><div id="fin-be-${w.id}"></div>`;
+    }
+
+    return`<div class="card" id="fin-card-${w.id}" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleFinCard(${w.id})">
+        <div class="work-badge" style="flex-shrink:0;">${w.title.slice(0,2)}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${w.title}</div>
+          <div style="font-size:11px;color:#888;">${w.genre||'–'}　${w.partner||'–'}　全${w.totalEps}話　連載開始：${w.startDate||'–'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;font-weight:700;color:${profColor};">${profLabel} ¥${Math.round(Math.abs(pr)/10000)}万</span>
+          <span style="font-size:14px;color:#aaa;">${isOpen?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${isOpen?`<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:12px;">
+        ${metricsHtml}${subTabs}${bodyHtml}
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  // コスト入力をレンダリング
+  list.forEach(w=>{
+    if(finCardOpen[w.id]&&(finCardTab[w.id]||'cost')==='cost'){
+      const el=document.getElementById('fin-cost-'+w.id);
+      if(el){
+        el.innerHTML='<div id="cost-inputs-'+w.id+'"></div>';
+        renderCostInputsById(w);
+      }
+    }
+    if(finCardOpen[w.id]&&finCardTab[w.id]==='graph'){
+      setTimeout(()=>renderFinCardGraph(w.id),50);
+    }
+  });
+}
+
+function renderCostInputsById(w){
+  // cost-inputsをworkのIDごとに分ける
+  const origId=document.getElementById('cost-inputs');
+  const targetId=document.getElementById('cost-inputs-'+w.id);
+  if(!targetId) return;
+  // 一時的にcost-inputsをターゲットIDに差し替えてrenderCostInputsを呼ぶ
+  if(origId) origId.id='cost-inputs-bak';
+  targetId.id='cost-inputs';
   renderCostInputs(w);
-  renderFinSummary();
-  setTimeout(()=>document.getElementById('fin-content').scrollIntoView({behavior:'smooth',block:'start'}),50);
+  targetId.id='cost-inputs-'+w.id;
+  if(origId) origId.id='cost-inputs';
+}
+
+function renderRevPLHtml(w){
+  const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
+  return`<div class="pl-row"><span>累計配信売上</span><span>¥${rv.gross.toLocaleString()}</span></div>
+    <div class="pl-row"><span>累計配信収益</span><span>¥${rv.delivery.toLocaleString()}</span></div>
+    <div class="pl-row"><span>累計自社収益（パートナーRS控除後）</span><span>¥${rv.net.toLocaleString()}</span></div>
+    <div class="pl-row"><span>総制作費</span><span style="color:#991b1b;">− ¥${ct.total.toLocaleString()}</span></div>
+    <div class="pl-row total"><span>営業損益</span><span class="${pr>=0?'green':'red'}">¥${pr.toLocaleString()}</span></div>`;
+}
+
+function addMonthRowById(wid){
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  const el=document.getElementById('new-month-'+wid);
+  const ym=el?el.value:'';
+  if(!ym||w.months.find(m=>m.ym===ym))return;
+  w.months.push({ym,gross:0,delivery:0,partnerRS:50});
+  w.months.sort((a,b)=>a.ym.localeCompare(b.ym));
+  renderFinCards();renderFinSummary();
+  if(syncEnabled) syncToSheets();
+}
+
+function renderFinCardGraph(wid){
+  const id=parseInt(wid);
+  const w=works.find(x=>x.id===id);if(!w)return;
+  const ct=calcTotalCost(w),ms=w.months||[];
+  const bb=document.getElementById('fin-be-'+id);
+  const canvas=document.getElementById('fin-chart-'+id);
+  if(!canvas) return;
+  if(finPlCharts[id]){finPlCharts[id].destroy();delete finPlCharts[id];}
+  if(!ms.length){if(bb)bb.innerHTML=`<div class="be-box"><div class="be-title">収益データがありません</div></div>`;return;}
+  let cn=0;const nd=[],cd=[],pd=[];
+  ms.forEach(m=>{cn+=Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100));nd.push(cn);cd.push(ct.total);pd.push(cn-ct.total);});
+  finPlCharts[id]=new Chart(canvas.getContext('2d'),{type:'line',data:{labels:ms.map(m=>m.ym),datasets:[
+    {label:'累計自社収益',data:nd,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.07)',tension:0.35,fill:false,pointRadius:4},
+    {label:'総制作費',data:cd,borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,0.04)',borderDash:[6,4],fill:false,pointRadius:3},
+    {label:'営業損益',data:pd,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.07)',tension:0.35,fill:true,pointRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:12,padding:10}}},
+    scales:{y:{ticks:{callback:v=>'¥'+(v/10000).toFixed(0)+'万',font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+  const pr=pd[pd.length-1];
+  if(bb){
+    if(pr>=0) bb.innerHTML=`<div class="be-box profit"><div class="be-title">損益状況</div><div class="be-val pv">✓ 黒字転換済み</div><div class="be-sub">累計損益：¥${pr.toLocaleString()}</div></div>`;
+    else{const rm=Math.abs(pr),avg=ms.length?cn/ms.length:0,mn=avg>0?Math.ceil(rm/avg):'－';
+      bb.innerHTML=`<div class="be-box"><div class="be-title">黒字転換までの目安</div><div class="be-val">あと約${mn}ヶ月</div><div class="be-sub">未回収：¥${rm.toLocaleString()}　月平均：¥${Math.round(avg).toLocaleString()}</div></div>`;}
+  }
+}
+
+// 旧 openFinDetail/closeFinDetail はサマリーテーブルのハイライト用に残す
+function openFinDetail(id){
+  selectedWorkId=id;
+  finCardOpen[id]=true;
+  renderFinCards();renderFinSummary();
+  setTimeout(()=>{const el=document.getElementById('fin-card-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},50);
 }
 function closeFinDetail(){
   selectedWorkId=null;
-  document.getElementById('fin-content').classList.add('hidden');
   renderFinSummary();
 }
 function selWork(){return selectedWorkId?works.find(x=>x.id===selectedWorkId)||null:null;}
@@ -1555,7 +1682,11 @@ function renderFinance(){
   buildFinFilter();
   renderFinSel();
   renderFinSummary();
+  renderFinCards();
 }
+// updM, rmMonthをカード再描画に対応
+function updM(id,i,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.months[i][f]=parseFloat(v)||0;renderFinCards();renderFinSummary();debouncedSync();}
+function rmMonth(id,i){const w=works.find(x=>x.id===id);if(!w)return;w.months.splice(i,1);renderFinCards();renderFinSummary();if(syncEnabled)syncToSheets();}
 function renderMetrics(w){
   const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
   document.getElementById('fin-metrics').innerHTML=`
@@ -1811,57 +1942,28 @@ function setDual(id,key,side,field,v){
   const w=works.find(x=>x.id===id);if(!w)return;
   const val=isNaN(v)?v:(parseFloat(v)||0);
   w.costs[key][side][field]=val;
+  costEditMode[id]=true; // 編集モードを維持
   renderCostInputs(w);renderMetrics(w);debouncedSync();
 }
 function setDualBool(id,key,field,val){
   const w=works.find(x=>x.id===id);if(!w)return;
   w.costs[key][field]=val;
-  // 追加時はデフォルト話数をセット
   if(val===true){
     const side=field==='useOutsource'?'outsource':'inhouse';
     if(!w.costs[key][side].epFrom) w.costs[key][side].epFrom=1;
     if(!w.costs[key][side].epTo)   w.costs[key][side].epTo=w.totalEps;
   }
+  costEditMode[id]=true; // 編集モードを維持
   renderCostInputs(w);renderMetrics(w);debouncedSync();
 }
 function setOverhead(id,v){
   const w=works.find(x=>x.id===id);if(!w)return;
   if(!w.costs.overhead)w.costs.overhead={pct:0};
   w.costs.overhead.pct=parseFloat(v)||0;
+  costEditMode[id]=true;
   renderCostInputs(w);renderMetrics(w);debouncedSync();
 }
 
-function renderRevTable(w){
-  document.getElementById('rev-tbody').innerHTML=(w.months||[]).map((m,i)=>{
-    const net=Math.round((m.delivery||0)*(1-(m.partnerRS||0)/100));
-    return`<tr><td>${m.ym}</td>
-      <td><input class="m-in" type="number" value="${m.gross||0}" onchange="updM(${w.id},${i},'gross',this.value)"/>円</td>
-      <td><input class="m-in" type="number" value="${m.delivery||0}" onchange="updM(${w.id},${i},'delivery',this.value)"/>円</td>
-      <td><input class="m-in" style="width:52px;" type="number" value="${m.partnerRS||50}" onchange="updM(${w.id},${i},'partnerRS',this.value)"/>%</td>
-      <td style="font-weight:700;">¥${net.toLocaleString()}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="rmMonth(${w.id},${i})">×</button></td></tr>`;
-  }).join('');
-}
-function renderRevPL(w){
-  const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
-  document.getElementById('rev-pl').innerHTML=`
-    <div class="pl-row"><span>累計配信売上</span><span>¥${rv.gross.toLocaleString()}</span></div>
-    <div class="pl-row"><span>累計配信収益</span><span>¥${rv.delivery.toLocaleString()}</span></div>
-    <div class="pl-row"><span>累計自社収益（パートナーRS控除後）</span><span>¥${rv.net.toLocaleString()}</span></div>
-    <div class="pl-row"><span>総制作費</span><span style="color:#991b1b;">− ¥${ct.total.toLocaleString()}</span></div>
-    <div class="pl-row total"><span>営業損益</span><span class="${pr>=0?'green':'red'}">¥${pr.toLocaleString()}</span></div>`;
-}
-function addMonthRow(){
-  const w=selWork();if(!w)return;
-  const ym=document.getElementById('new-month').value;
-  if(!ym||w.months.find(m=>m.ym===ym))return;
-  w.months.push({ym,gross:0,delivery:0,partnerRS:50});
-  w.months.sort((a,b)=>a.ym.localeCompare(b.ym));
-  renderRevTable(w);renderRevPL(w);renderMetrics(w);
-  if(syncEnabled) syncToSheets();
-}
-function updM(id,i,f,v){const w=works.find(x=>x.id===id);if(!w)return;w.months[i][f]=parseFloat(v)||0;renderRevTable(w);renderRevPL(w);renderMetrics(w);debouncedSync();}
-function rmMonth(id,i){const w=works.find(x=>x.id===id);if(!w)return;w.months.splice(i,1);renderRevTable(w);renderRevPL(w);renderMetrics(w);if(syncEnabled)syncToSheets();}
 
 function renderGraph(w){
   const ct=calcTotalCost(w),ms=w.months||[],bb=document.getElementById('be-box');
@@ -1980,6 +2082,7 @@ function showImportMsg(type,msg){
 function initApp(){
   renderWorks();
   renderFinSummary();
+  renderFinCards();
   // Sheets URLが保存されていれば自動接続
   if(SHEETS_URL){
     syncEnabled=true;
