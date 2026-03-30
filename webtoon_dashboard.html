@@ -2429,6 +2429,44 @@ function promptEpLink(epId,field){
 }
 
 /* ---- メインレンダリング ---- */
+function buildReminderMail(alerts){
+  const byAssignee={};
+  alerts.forEach(({w,ep,rd,deadline})=>{
+    const c=w.costs||{};
+    const assignees=new Set();
+    if(c.fix?.assignee)assignees.add(c.fix.assignee);
+    if(c.transCheck?.inhouse?.assignee)assignees.add(c.transCheck.inhouse.assignee);
+    if(c.typesetting?.inhouse?.assignee)assignees.add(c.typesetting.inhouse.assignee);
+    if(!assignees.size)assignees.add('担当者未設定');
+    assignees.forEach(a=>{
+      if(!byAssignee[a])byAssignee[a]=[];
+      byAssignee[a].push({w,ep,rd,deadline});
+    });
+  });
+  return byAssignee;
+}
+
+function groupByWork(items){
+  const map={};
+  items.forEach(({w,ep,deadline})=>{
+    if(!map[w.id])map[w.id]={w,eps:[],deadline};
+    map[w.id].eps.push(ep.epNum);
+    if(!map[w.id].deadline||deadline<map[w.id].deadline) map[w.id].deadline=deadline;
+  });
+  return Object.values(map);
+}
+function epRange(nums){
+  if(!nums.length)return'';
+  const sorted=[...nums].sort((a,b)=>a-b);
+  const ranges=[];let start=sorted[0],end=sorted[0];
+  for(let i=1;i<sorted.length;i++){
+    if(sorted[i]===end+1)end=sorted[i];
+    else{ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);start=end=sorted[i];}
+  }
+  ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);
+  return ranges.join('、');
+}
+
 function renderDelivery(){
   // 作品のstartDateがあればworkEpDataを自動初期化
   works.forEach(w=>{
@@ -2494,52 +2532,9 @@ function renderDelivery(){
   });
 
   // ===== 担当者別リマインド =====
-  function buildReminderMail(alerts){
-    // 担当者→作品・話を集計（FIXは翻訳チェック/写植/FIX担当者）
-    const byAssignee={};
-    alerts.forEach(({w,ep,rd,deadline})=>{
-      const c=w.costs||{};
-      const assignees=new Set();
-      if(c.fix?.assignee)assignees.add(c.fix.assignee);
-      if(c.transCheck?.inhouse?.assignee)assignees.add(c.transCheck.inhouse.assignee);
-      if(c.typesetting?.inhouse?.assignee)assignees.add(c.typesetting.inhouse.assignee);
-      if(!assignees.size)assignees.add('担当者未設定');
-      assignees.forEach(a=>{
-        if(!byAssignee[a])byAssignee[a]=[];
-        byAssignee[a].push({w,ep,rd,deadline});
-      });
-    });
-    return byAssignee;
-  }
-
   const reminderData=buildReminderMail(alerts);
 
-  // 作品別にグループ化（今日入稿可能）
-  function groupByWork(items){
-    const map={};
-    items.forEach(({w,ep,deadline})=>{
-      if(!map[w.id])map[w.id]={w,eps:[],deadline};
-      map[w.id].eps.push(ep.epNum);
-      // 最も早い〆日
-      if(!map[w.id].deadline||deadline<map[w.id].deadline) map[w.id].deadline=deadline;
-    });
-    return Object.values(map);
-  }
-  function epRange(nums){
-    if(!nums.length)return'';
-    const sorted=[...nums].sort((a,b)=>a-b);
-    const ranges=[];
-    let start=sorted[0],end=sorted[0];
-    for(let i=1;i<sorted.length;i++){
-      if(sorted[i]===end+1){end=sorted[i];}
-      else{ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);start=end=sorted[i];}
-    }
-    ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);
-    return ranges.join('、');
-  }
-
   const canSubmitGroups=groupByWork(canSubmit);
-  const alertGroups=groupByWork(alerts.map(a=>({...a,deadline:a.deadline})));
 
   let dashHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:16px;">`;
 
