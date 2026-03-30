@@ -2343,6 +2343,12 @@ function promptEpLink(epId,field){
 
 /* ---- メインレンダリング ---- */
 function renderDelivery(){
+  // 作品のstartDateがあればworkEpDataを自動初期化
+  works.forEach(w=>{
+    if(w.startDate&&(!workEpData[w.id]||!workEpData[w.id].startDate)){
+      workEpData[w.id]={startDate:w.startDate,startEp:w.startEp||1};
+    }
+  });
   syncAllEpisodes(); // 作品情報と同期
   const container=document.getElementById('dlv-works-list');
   if(!container)return;
