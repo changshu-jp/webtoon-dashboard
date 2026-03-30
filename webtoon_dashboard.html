@@ -1113,7 +1113,26 @@ function recordWeek(id){
   renderWorks();
   if(syncEnabled) syncToSheets();
 }
-function editSnap(wid,si,stg,val){const w=works.find(x=>x.id===wid);if(w){w.progress[si][stg]=parseInt(val)||0;debouncedSync();}}
+function editSnap(wid,si,stg,val){
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  w.progress[si][stg]=parseInt(val)||0;
+  // FIX(stg===4)が更新されたら該当話のfixDateを記録
+  if(stg===4){
+    const fixCount=w.progress[si][4]||0;
+    const cfg=workEpData[wid];
+    const startEp=cfg?.startEp||1;
+    const snapDate=w.histDates[si];
+    episodes.forEach(ep=>{
+      if(ep.workId!==wid)return;
+      const relIdx=ep.epNum-startEp;
+      if(relIdx>=0&&relIdx<fixCount&&!ep.fixDate){
+        ep.fixDate=snapDate||today();
+        ep.fixDone=true;
+      }
+    });
+  }
+  debouncedSync();
+}
 function editSnapDate(wid,si,val){const w=works.find(x=>x.id===wid);if(w){w.histDates[si]=val;debouncedSync();}}
 function delSnap(wid,si){
   const w=works.find(x=>x.id===wid);if(!w)return;
@@ -2220,7 +2239,7 @@ function showImportMsg(type,msg){
 /* =====================================================
    連載納品管理（作品別自動生成方式）
    ===================================================== */
-const DEFAULT_PLATFORMS=['ピッコマ','めちゃコミ','コミックシーモア','BeLTOON'];
+const DEFAULT_PLATFORMS=['LINEマンガ','ピッコマ','めちゃコミ','コミックシーモア','BeLTOON'];
 let platforms=[...DEFAULT_PLATFORMS];
 // episodes: {id, workId, epNum, subtitle, subtitleKana, fixDone, thumbLink, jpgLink, delivered, overrideRelease}
 // workEpData: workId → {startDate, startEp, platforms:[]} の連載設定
@@ -2495,33 +2514,81 @@ function renderDelivery(){
 
   const reminderData=buildReminderMail(alerts);
 
+  // 作品別にグループ化（今日入稿可能）
+  function groupByWork(items){
+    const map={};
+    items.forEach(({w,ep,deadline})=>{
+      if(!map[w.id])map[w.id]={w,eps:[],deadline};
+      map[w.id].eps.push(ep.epNum);
+      // 最も早い〆日
+      if(!map[w.id].deadline||deadline<map[w.id].deadline) map[w.id].deadline=deadline;
+    });
+    return Object.values(map);
+  }
+  function epRange(nums){
+    if(!nums.length)return'';
+    const sorted=[...nums].sort((a,b)=>a-b);
+    const ranges=[];
+    let start=sorted[0],end=sorted[0];
+    for(let i=1;i<sorted.length;i++){
+      if(sorted[i]===end+1){end=sorted[i];}
+      else{ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);start=end=sorted[i];}
+    }
+    ranges.push(start===end?`第${start}話`:`第${start}〜${end}話`);
+    return ranges.join('、');
+  }
+
+  const canSubmitGroups=groupByWork(canSubmit);
+  const alertGroups=groupByWork(alerts.map(a=>({...a,deadline:a.deadline})));
+
   let dashHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:16px;">`;
 
   // カード1: 今日入稿可能
   dashHtml+=`<div class="card" style="border-left:4px solid #16a34a;">
-    <div style="font-size:13px;font-weight:700;color:#16a34a;margin-bottom:8px;">✅ 今日入稿可能（${canSubmit.length}件）</div>
-    ${canSubmit.length?canSubmit.slice(0,10).map(({w,ep,rd,deadline})=>`
+    <div style="font-size:13px;font-weight:700;color:#16a34a;margin-bottom:8px;">✅ 今日入稿可能（${canSubmitGroups.length}件）</div>
+    ${canSubmitGroups.length?canSubmitGroups.map(({w,eps,deadline})=>`
       <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px;">
-        <span><strong>${w.title}</strong> 第${ep.epNum}話</span>
-        <span style="color:#888;">入稿〆 ${fmtDate(deadline)}</span>
-      </div>`).join('')+(canSubmit.length>10?`<div style="font-size:11px;color:#aaa;margin-top:4px;">他${canSubmit.length-10}件</div>`:'')
+        <span><strong>${w.title}</strong> ${epRange(eps)}</span>
+        <span style="color:#888;">〆${fmtDate(deadline)}</span>
+      </div>`).join('')
     :'<div style="font-size:12px;color:#aaa;text-align:center;padding:8px;">今日入稿可能な話はありません</div>'}
   </div>`;
 
-  // カード2: 要注意（入稿〆1週間以内でFIX・サムネ未完了）
+  // カード2: 要注意（入稿〆1週間以内・入稿未完了）
+  // 入稿〆が1週間以内かつ入稿済でない全話
+  const alertAll=[];
+  works.forEach(w=>{
+    const cfg=workEpData[w.id];if(!cfg||!cfg.startDate)return;
+    const wEps=episodes.filter(e=>e.workId===w.id).sort((a,b)=>a.epNum-b.epNum);
+    wEps.forEach(ep=>{
+      // 最も早いプラットフォームの配信日基準で入稿〆を計算
+      const platReleaseDates=[];
+      (cfg.platforms||DEFAULT_PLATFORMS).forEach(p=>{
+        const key=platKey(p);
+        const platRd=ep.platRelease?.[key]||ep.overrideRelease||calcReleaseDate(w.id,ep.epNum);
+        if(platRd)platReleaseDates.push(platRd);
+      });
+      const earliestRd=platReleaseDates.sort()[0];
+      if(!earliestRd)return;
+      const deadline=calcDeadlineDate(earliestRd);
+      if(!deadline)return;
+      const ddiff=diffDays(deadline);
+      if(ddiff!==null&&ddiff<=7&&!ep.delivered){
+        alertAll.push({w,ep,deadline,rd:earliestRd,fixOk:ep.fixDone,thumbOk:!!ep.thumbLink});
+      }
+    });
+  });
+  const alertAllGroups=groupByWork(alertAll);
+
   dashHtml+=`<div class="card" style="border-left:4px solid #dc2626;">
-    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px;">⚠️ 要注意（入稿〆1週間以内・未完了）（${alerts.length}件）</div>
-    ${alerts.length?alerts.slice(0,10).map(({w,ep,deadline,fixOk,thumbOk})=>`
+    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px;">⚠️ 要注意（入稿〆1週間以内・未入稿）（${alertAllGroups.length}件）</div>
+    ${alertAllGroups.length?alertAllGroups.map(({w,eps,deadline})=>`
       <div style="padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px;">
         <div style="display:flex;justify-content:space-between;">
-          <span><strong>${w.title}</strong> 第${ep.epNum}話</span>
+          <span><strong>${w.title}</strong> ${epRange(eps)}</span>
           <span style="color:#dc2626;font-weight:700;">〆${fmtDate(deadline)}</span>
         </div>
-        <div style="font-size:10px;color:#888;margin-top:2px;">
-          ${!fixOk?'<span style="color:#dc2626;">●FIX未完了</span> ':''}
-          ${!thumbOk?'<span style="color:#ea580c;">●サムネ未完了</span>':''}
-        </div>
-      </div>`).join('')+(alerts.length>10?`<div style="font-size:11px;color:#aaa;margin-top:4px;">他${alerts.length-10}件</div>`:'')
+      </div>`).join('')
     :'<div style="font-size:12px;color:#aaa;text-align:center;padding:8px;">問題なし</div>'}
   </div>`;
 
@@ -2565,34 +2632,62 @@ function renderDelivery(){
         :'<span style="color:#bbb;">今週の連載なし</span>'}
     </div>`;
 
-    let detailHtml='';
     if(isOpen){
       const platCols=wPlats.map(p=>`<th style="text-align:center;padding:6px 4px;white-space:nowrap;min-width:90px;font-size:11px;">
-        <span style="color:#dc2626;">入稿〆</span><br/>
+        <span style="color:#dc2626;font-weight:700;">入稿〆</span><br/>
         <span style="color:#2563eb;">${p} 配信</span>
       </th>`).join('');
 
-      const rows=wEps.map(ep=>{
-        const rd=ep.overrideRelease||calcReleaseDate(w.id,ep.epNum)||'';
-        const deadline=calcDeadlineDate(rd);
-        const diffR=diffDays(rd);
+      const rows=wEps.map((ep,rowIdx)=>{
+        // プラットフォーム別配信日（個別設定 or デフォルト計算）
+        const baseRd=ep.overrideRelease||calcReleaseDate(w.id,ep.epNum)||'';
+        // 最も早い配信日で入稿〆を計算
+        const platRds=wPlats.map(p=>{
+          const key=platKey(p);
+          return(ep.platRelease&&ep.platRelease[key])||baseRd;
+        });
+        const earliestRd=platRds.filter(Boolean).sort()[0]||'';
+        const deadline=calcDeadlineDate(earliestRd);
         const diffD=diffDays(deadline);
-        const isThisWeek=rd&&new Date(rd+'T00:00:00')>=today&&new Date(rd+'T00:00:00')<=weekEnd;
-        const isAlert=diffD!==null&&diffD<=7&&diffD>=0&&(!ep.fixDone||!ep.thumbLink)&&!ep.delivered;
+        const isThisWeek=baseRd&&new Date(baseRd+'T00:00:00')>=today&&new Date(baseRd+'T00:00:00')<=weekEnd;
+        const isAlert=diffD!==null&&diffD<=7&&diffD>=0&&!ep.delivered;
         const rowBg=ep.delivered?'#f0fdf4':isAlert?'#fff5f5':isThisWeek?'#fffbeb':'#fff';
 
-        const stR=diffR===null?{c:'#ccc',w:'400'}:diffR<0?{c:'#dc2626',w:'700'}:diffR<=7?{c:'#ca8a04',w:'700'}:{c:'#2563eb',w:'400'};
         const stD=diffD===null?{c:'#ccc',w:'400'}:diffD<0?{c:'#dc2626',w:'700'}:diffD<=3?{c:'#ea580c',w:'700'}:diffD<=7?{c:'#ca8a04',w:'600'}:{c:'#888',w:'400'};
 
-        const platCells=wPlats.map(()=>`<td style="text-align:center;padding:5px 4px;min-width:90px;">
-          <div style="color:${stD.c};font-weight:${stD.w};font-size:11px;">${deadline?fmtDate(deadline):'–'}</div>
-          <div style="color:${stR.c};font-weight:${stR.w};font-size:11px;margin-top:2px;">${rd?fmtDate(rd):'–'}</div>
-        </td>`).join('');
+        const platCells=wPlats.map((p,pi)=>{
+          const key=platKey(p);
+          const platRd=(ep.platRelease&&ep.platRelease[key])||baseRd;
+          const stR=!platRd?{c:'#ccc',w:'400'}:diffDays(platRd)<0?{c:'#7c3aed',w:'700'}:diffDays(platRd)<=7?{c:'#2563eb',w:'700'}:{c:'#2563eb',w:'400'};
+          return`<td style="text-align:center;padding:4px 4px;min-width:90px;border-left:1px solid #f5f5f5;">
+            <div style="color:${stD.c};font-weight:${stD.w};font-size:11px;line-height:1.4;">${deadline?fmtDate(deadline):'–'}</div>
+            <div style="margin-top:1px;">
+              <input type="date" value="${platRd||''}"
+                onchange="setEpPlatRelease(${ep.id},'${key}',this.value)"
+                style="font-size:10px;color:${stR.c};font-weight:${stR.w};border:none;background:transparent;outline:none;width:100%;text-align:center;cursor:pointer;"/>
+            </div>
+          </td>`;
+        }).join('');
 
-        return`<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
+        // FIX日付
+        const fixDateCell=`<td style="text-align:center;padding:4px;">
+          <span style="cursor:pointer;font-size:14px;" onclick="toggleEpField(${ep.id},'fixDone')" title="${ep.fixDate||''}">${ep.fixDone?'✅':'⬜'}</span>
+          ${ep.fixDone?`<div style="font-size:9px;color:#16a34a;">${ep.fixDate?fmtDateShort(ep.fixDate):'日付なし'}</div>`:''}
+        </td>`;
+
+        // 入稿済 + 日付 + ドラッグ
+        const delivCell=`<td style="text-align:center;padding:4px;" id="dlv-cell-${ep.id}">
+          <span style="cursor:pointer;font-size:14px;" onclick="toggleDeliveredWithDate(${ep.id})">${ep.delivered?'✅':'⬜'}</span>
+          ${ep.delivered?`<div style="font-size:9px;color:#16a34a;">${ep.deliveredDate?fmtDateShort(ep.deliveredDate):'日付なし'}</div>`:''}
+          ${ep.delivered?`<input type="date" value="${ep.deliveredDate||''}"
+            onchange="setEpDeliveredDate(${ep.id},this.value)"
+            style="font-size:9px;border:none;background:transparent;outline:none;width:80px;text-align:center;"
+            title="入稿日を変更"/>`:''}
+        </td>`;
+
+        return`<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};" data-ep-id="${ep.id}" data-row-idx="${rowIdx}">
           <td style="padding:5px 8px;font-weight:700;text-align:center;white-space:nowrap;">
-            第${ep.epNum}話
-            ${ep.epNum<cfg.startEp?'<span style="font-size:9px;color:#aaa;">(連載前)</span>':''}
+            第${ep.epNum}話${ep.epNum<cfg.startEp?'<span style="font-size:9px;color:#aaa;"> (連載前)</span>':''}
           </td>
           <td style="padding:5px 6px;">
             <input type="text" value="${ep.subtitle||''}" onchange="updateEpField(${ep.id},'subtitle',this.value)"
@@ -2602,23 +2697,19 @@ function renderDelivery(){
             <input type="text" value="${ep.subtitleKana||''}" onchange="updateEpField(${ep.id},'subtitleKana',this.value)"
               style="width:100%;border:none;background:transparent;font-size:12px;outline:none;border-bottom:1px solid #f0f0f0;" placeholder="–"/>
           </td>
-          <td style="text-align:center;padding:5px 4px;">
-            <span style="cursor:pointer;font-size:16px;" onclick="toggleEpField(${ep.id},'fixDone')">${ep.fixDone?'✅':'⬜'}</span>
-          </td>
-          <td style="text-align:center;padding:5px 4px;">
+          ${fixDateCell}
+          <td style="text-align:center;padding:4px;">
             ${ep.thumbLink
               ?`<a href="${ep.thumbLink}" target="_blank" style="font-size:13px;">✅</a>`
               :`<button class="btn btn-sm" onclick="promptEpLink(${ep.id},'thumbLink')" style="font-size:10px;padding:2px 4px;">登録</button>`}
           </td>
           ${platCells}
-          <td style="text-align:center;padding:5px 4px;">
-            <span style="cursor:pointer;font-size:16px;" onclick="toggleEpField(${ep.id},'delivered')">${ep.delivered?'✅':'⬜'}</span>
-          </td>
+          ${delivCell}
         </tr>`;
       }).join('');
 
       detailHtml=`<div style="margin-top:12px;overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;" id="dlv-detail-${w.id}">
           <thead><tr style="background:#f5f5f5;">
             <th style="padding:6px 8px;text-align:center;white-space:nowrap;">話数</th>
             <th style="padding:6px 8px;text-align:left;min-width:100px;">サブタイトル</th>
@@ -2626,7 +2717,7 @@ function renderDelivery(){
             <th style="padding:6px 4px;text-align:center;">FIX</th>
             <th style="padding:6px 4px;text-align:center;">サムネ</th>
             ${platCols}
-            <th style="padding:6px 4px;text-align:center;">入稿済</th>
+            <th style="padding:6px 4px;text-align:center;white-space:nowrap;">入稿済<br/><span style="font-size:9px;color:#aaa;">（日付ドラッグ可）</span></th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -2707,6 +2798,59 @@ function openReminderMail(encodedAssignee){
     </div>`;
   document.body.appendChild(box);
 }
+
+function fmtDateShort(d){
+  if(!d)return'';
+  const parts=d.split('-').map(Number);
+  const dt=new Date(parts[0],parts[1]-1,parts[2]);
+  return`${dt.getMonth()+1}/${dt.getDate()}`;
+}
+
+function setEpPlatRelease(epId,key,val){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  if(!ep.platRelease)ep.platRelease={};
+  ep.platRelease[key]=val;
+  debouncedSync();
+  renderDelivery();
+}
+
+function toggleDeliveredWithDate(epId){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  ep.delivered=!ep.delivered;
+  if(ep.delivered&&!ep.deliveredDate){
+    const t=new Date();
+    ep.deliveredDate=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+  renderDelivery();
+  if(syncEnabled)debouncedSync();
+}
+
+function setEpDeliveredDate(epId,val){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  ep.deliveredDate=val;debouncedSync();
+}
+
+// 入稿日ドラッグ（同じ日付を下の行に連続入力）
+let _dragDate=null;
+document.addEventListener('mousedown',e=>{
+  const cell=e.target.closest('td[id^="dlv-cell-"]');
+  if(!cell)return;
+  const epId=parseInt(cell.id.replace('dlv-cell-',''));
+  const ep=episodes.find(x=>x.id===epId);
+  if(ep&&ep.delivered&&ep.deliveredDate)_dragDate=ep.deliveredDate;
+});
+document.addEventListener('mouseover',e=>{
+  if(!_dragDate)return;
+  const cell=e.target.closest('td[id^="dlv-cell-"]');
+  if(!cell)return;
+  const epId=parseInt(cell.id.replace('dlv-cell-',''));
+  const ep=episodes.find(x=>x.id===epId);
+  if(ep&&!ep.delivered){
+    ep.delivered=true;ep.deliveredDate=_dragDate;
+    renderDelivery();if(syncEnabled)debouncedSync();
+  }
+});
+document.addEventListener('mouseup',()=>{_dragDate=null;});
 
 function toggleDlvWork(id){
   if(dlvOpenIds.has(id))dlvOpenIds.delete(id);
