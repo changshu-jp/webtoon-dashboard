@@ -332,76 +332,31 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
 <div class="page" id="page-delivery">
   <div class="sec-hdr">
     <span class="sec-title">連載納品管理</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <button class="btn btn-sm" onclick="openPlatformManager()">⚙️ プラットフォーム管理</button>
-      <button class="btn btn-sm" onclick="autoGenerateAllEpisodes()">🔄 作品から自動生成</button>
-      <button class="btn btn-primary btn-sm" onclick="openAddEpisodeModal()">＋ 話を追加</button>
-    </div>
+    <button class="btn btn-sm" onclick="openPlatformManager()">⚙️ プラットフォーム管理</button>
   </div>
-
-  <!-- フィルター＆表示設定 -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:9px;border:1px solid #e5e5e5;">
-    <label style="font-size:11px;color:#666;">作品：</label>
-    <select id="dlv-work-filter" onchange="renderDelivery()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;"><option value="all">すべて</option></select>
-    <label style="font-size:11px;color:#666;margin-left:8px;">表示範囲：</label>
-    <select id="dlv-range" onchange="renderDelivery()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
-      <option value="2w" selected>2週間以内</option>
-      <option value="1m">1ヶ月以内</option>
-      <option value="all">すべて</option>
-    </select>
-    <label style="font-size:11px;color:#666;margin-left:8px;">完了状況：</label>
-    <select id="dlv-status-filter" onchange="renderDelivery()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
-      <option value="all">すべて</option>
-      <option value="incomplete">未完了のみ</option>
-      <option value="complete">完了のみ</option>
-    </select>
-    <label style="font-size:11px;color:#666;margin-left:8px;">並び替え：</label>
-    <select id="dlv-sort" onchange="renderDelivery()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
-      <option value="deadline">納品日順</option>
-      <option value="work">作品名順</option>
-      <option value="ep">話数順</option>
-    </select>
-  </div>
-
-  <!-- 納品テーブル -->
-  <div style="overflow-x:auto;" id="dlv-table-wrap">
-    <table class="summary-table" id="dlv-table" style="font-size:12px;">
-      <thead><tr id="dlv-thead-row"></tr></thead>
-      <tbody id="dlv-tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- 週次納品まとめ -->
-  <div class="card" style="margin-top:18px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <span style="font-size:13px;font-weight:700;">📦 今週の納品まとめ（2週間以内）</span>
-    </div>
-    <div id="dlv-weekly-summary"></div>
-  </div>
+  <div id="dlv-works-list"></div>
 </div>
 
-<!-- 話追加・編集モーダル -->
-<div id="ep-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:12px;padding:24px 28px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
-    <div style="font-size:15px;font-weight:700;margin-bottom:16px;">📝 話を追加 / 編集</div>
-    <input type="hidden" id="ep-edit-id"/>
-    <div class="form-grid">
-      <div class="form-group"><label>作品</label><select class="fi" id="ep-work-id"></select></div>
-      <div class="form-group"><label>話数</label><input class="fi" id="ep-num" type="number" min="1" placeholder="1"/></div>
+<!-- 連載設定モーダル -->
+<div id="dlv-setting-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:24px 28px;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px;">📅 連載設定</div>
+    <input type="hidden" id="dlv-setting-wid"/>
+    <div class="form-group">
+      <label>連載開始日</label>
+      <input class="fi" id="dlv-setting-startdate" type="date"/>
     </div>
-    <div class="form-grid">
-      <div class="form-group"><label>サブタイトル</label><input class="fi" id="ep-subtitle" placeholder="サブタイトル"/></div>
-      <div class="form-group"><label>カタカナ表記</label><input class="fi" id="ep-subtitle-kana" placeholder="カタカナ"/></div>
+    <div class="form-group">
+      <label>連載開始話数</label>
+      <input class="fi" id="dlv-setting-startep" type="number" min="1" value="1"/>
     </div>
-    <div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 6px;">📅 プラットフォーム別納品マグ日</div>
-    <div id="ep-platform-fields"></div>
-    <div class="form-group" style="margin-top:8px;"><label>連載日</label><input class="fi" id="ep-release" type="date"/></div>
-    <div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 6px;">🔗 制作リンク</div>
-    <div class="form-group"><label>制作完了 JPGリンク</label><input class="fi" id="ep-jpg-link" type="url" placeholder="https://drive.google.com/..."/></div>
-    <div class="form-group"><label>サムネイルフォルダリンク</label><input class="fi" id="ep-thumb-link" type="url" placeholder="https://drive.google.com/..."/></div>
+    <div style="font-size:11px;color:#888;background:#f5f5f5;border-radius:6px;padding:8px;margin:10px 0;">
+      ※ 連載開始日・開始話数を入力すると、週1回ペースで全話分の連載日が自動生成されます。<br>
+      ※ 各話の入庫マグ日は連載日の3週前に自動設定されます。
+    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
-      <button class="btn btn-sm" onclick="closeEpModal()">キャンセル</button>
-      <button class="btn btn-primary btn-sm" onclick="saveEpisode()">保存</button>
+      <button class="btn btn-sm" onclick="closeDlvSettingModal()">キャンセル</button>
+      <button class="btn btn-primary btn-sm" onclick="saveDlvSetting()">保存・生成</button>
     </div>
   </div>
 </div>
@@ -482,8 +437,9 @@ async function syncFromSheets(){
     trash=data.trash||trash;
     episodes=data.episodes||episodes;
     if(data.platforms&&data.platforms.length) platforms=data.platforms;
+    if(data.workEpData) workEpData=data.workEpData;
     nextId=Math.max(5,...works.map(w=>w.id+1));
-    nextEpId=Math.max(1,...episodes.map(e=>e.id+1));
+    nextEpId=episodes.length?Math.max(1,...episodes.map(e=>e.id+1)):1;
     renderWorks();
     if(document.getElementById('page-finance').classList.contains('active')){
       renderFinSel();renderFinSummary();renderFinCards();
@@ -499,7 +455,7 @@ async function syncToSheets(){
   if(!syncEnabled||!SHEETS_URL)return;
   setSyncStatus('syncing');
   try{
-    const res=await sheetsPost({action:'saveAll',data:{works,trash,episodes,platforms}});
+    const res=await sheetsPost({action:'saveAll',data:{works,trash,episodes,platforms,workEpData}});
     if(res.error) throw new Error(res.error);
     setSyncStatus('ok');
   }catch(e){
@@ -2242,231 +2198,18 @@ function showImportMsg(type,msg){
 
 // ページ読み込み時の初期化
 /* =====================================================
-   連載納品管理
+   連載納品管理（作品別自動生成方式）
    ===================================================== */
-let platforms=['LINEマンガ']; // 動的に追加可能なプラットフォーム一覧
+let platforms=['LINEマンガ'];
+// episodes: {id, workId, epNum, subtitle, subtitleKana, fixDone, thumbLink, jpgLink, delivered, overrideRelease}
+// workEpData: workId → {startDate, startEp} の連載設定（worksと別に保存）
 let episodes=[];
 let nextEpId=1;
+let dlvOpenIds=new Set(); // 展開中の作品ID
+let workEpData={}; // workId → {startDate, startEp}
 
-// ---- プラットフォーム管理 ----
-function openPlatformManager(){
-  const modal=document.getElementById('plat-modal');
-  modal.style.display='flex';
-  renderPlatformList();
-}
-function closePlatformManager(){
-  document.getElementById('plat-modal').style.display='none';
-  renderDelivery();
-  if(syncEnabled) syncToSheets();
-}
-function renderPlatformList(){
-  const el=document.getElementById('plat-list');
-  if(!el)return;
-  el.innerHTML=platforms.map((p,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#f9f9f9;border-radius:6px;margin-bottom:6px;">
-      <span style="font-size:13px;">${p}</span>
-      <button class="btn btn-sm btn-danger" onclick="deletePlatform(${i})" style="font-size:10px;padding:2px 6px;">削除</button>
-    </div>`).join('')||'<div style="color:#aaa;font-size:12px;">プラットフォームがありません</div>';
-}
-function addPlatform(){
-  const inp=document.getElementById('plat-new-name');
-  const name=inp.value.trim();
-  if(!name||platforms.includes(name))return;
-  platforms.push(name);
-  inp.value='';
-  renderPlatformList();
-}
-function deletePlatform(i){
-  platforms.splice(i,1);
-  renderPlatformList();
-}
-
-// ---- 話追加・編集 ----
-// 作品情報から話を自動生成
-function autoGenerateEpisodes(workId){
-  const w=works.find(x=>x.id===workId);
-  if(!w||!w.startDate||!w.totalEps)return 0;
-
-  const startD=new Date(w.startDate+'T00:00:00');
-  const startEp=w.startEp||1;
-  const totalEps=w.totalEps;
-  let added=0;
-
-  for(let i=0;i<totalEps;i++){
-    const epNum=startEp+i;
-    // 既に登録済みならスキップ
-    const exists=episodes.find(e=>e.workId===workId&&e.epNum===epNum);
-    if(exists)continue;
-
-    // 連載日 = 連載開始日 + i週
-    const releaseD=new Date(startD.getTime()+i*7*86400000);
-    const releaseDate=releaseD.toISOString().slice(0,10);
-
-    episodes.push({
-      id:nextEpId++,
-      workId,
-      epNum,
-      subtitle:'',
-      subtitleKana:'',
-      deadlines:{},
-      releaseDate,
-      jpgLink:'',
-      thumbLink:'',
-      delivered:false,
-    });
-    added++;
-  }
-  return added;
-}
-
-function autoGenerateAllEpisodes(){
-  // 連載開始日が設定されている作品のみ対象
-  const eligible=works.filter(w=>w.startDate&&w.totalEps);
-  if(!eligible.length){
-    showToast('info','連載開始日が設定された作品がありません');
-    return;
-  }
-
-  // 確認ダイアログ
-  const names=eligible.map(w=>w.title).join('、');
-  const box=document.createElement('div');
-  box.id='auto-gen-confirm';
-  box.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1.5px solid #e5e5e5;border-radius:12px;padding:22px 26px;z-index:999;box-shadow:0 4px 24px rgba(0,0,0,0.12);min-width:320px;max-width:90vw;';
-  box.innerHTML=`
-    <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📅 話を自動生成</div>
-    <div style="font-size:12px;color:#555;margin-bottom:6px;">以下の作品の連載話を生成します：</div>
-    <div style="font-size:12px;color:#1d4ed8;margin-bottom:10px;">${names}</div>
-    <div style="font-size:11px;color:#888;background:#f5f5f5;border-radius:6px;padding:8px;margin-bottom:14px;">
-      ・連載開始日から週1回の連載日を自動計算<br>
-      ・すでに登録済みの話はスキップ<br>
-      ・納品日は空欄（後から入力）
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-sm" onclick="document.getElementById('auto-gen-confirm').remove()">キャンセル</button>
-      <button class="btn btn-sm btn-primary" onclick="execAutoGenerate()">生成する</button>
-    </div>`;
-  document.body.appendChild(box);
-}
-
-function execAutoGenerate(){
-  document.getElementById('auto-gen-confirm')?.remove();
-  let total=0;
-  works.filter(w=>w.startDate&&w.totalEps).forEach(w=>{
-    total+=autoGenerateEpisodes(w.id);
-  });
-  renderDelivery();
-  if(syncEnabled) syncToSheets();
-  showToast('success',`✅ ${total}話を生成しました`);
-}
-
-function buildDlvWorkFilter(){
-  const sel=document.getElementById('dlv-work-filter');
-  if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="all">すべて</option>'+
-    works.map(w=>`<option value="${w.id}"${w.id==cur?' selected':''}>${w.title}</option>`).join('');
-}
-function buildEpWorkSelect(){
-  const sel=document.getElementById('ep-work-id');
-  if(!sel)return;
-  sel.innerHTML=works.map(w=>`<option value="${w.id}">${w.title}</option>`).join('');
-}
-function buildEpPlatformFields(ep){
-  const el=document.getElementById('ep-platform-fields');
-  if(!el)return;
-  // 2列グリッドで並べる
-  const items=platforms.map(p=>`
-    <div class="form-group">
-      <label>${p}</label>
-      <input class="fi" id="ep-dl-${platKey(p)}" type="date" value="${ep?.deadlines?.[platKey(p)]||''}"/>
-    </div>`);
-  let html='';
-  for(let i=0;i<items.length;i+=2){
-    html+=`<div class="form-grid">${items[i]}${items[i+1]||''}</div>`;
-  }
-  el.innerHTML=html;
-}
-function platKey(name){
-  return name.replace(/[^a-zA-Z0-9\u3040-\u30ff\u4e00-\u9fff]/g,'_').toLowerCase();
-}
-
-function openAddEpisodeModal(epId){
-  buildEpWorkSelect();
-  const ep=epId?episodes.find(e=>e.id===epId):null;
-  document.getElementById('ep-modal').style.display='flex';
-  document.getElementById('ep-edit-id').value=epId||'';
-  document.getElementById('ep-num').value=ep?.epNum||'';
-  document.getElementById('ep-subtitle').value=ep?.subtitle||'';
-  document.getElementById('ep-subtitle-kana').value=ep?.subtitleKana||'';
-  document.getElementById('ep-release').value=ep?.releaseDate||'';
-  document.getElementById('ep-jpg-link').value=ep?.jpgLink||'';
-  document.getElementById('ep-thumb-link').value=ep?.thumbLink||'';
-  if(ep) document.getElementById('ep-work-id').value=ep.workId;
-  buildEpPlatformFields(ep);
-}
-function closeEpModal(){
-  document.getElementById('ep-modal').style.display='none';
-}
-function saveEpisode(){
-  const editId=document.getElementById('ep-edit-id').value;
-  const workId=parseInt(document.getElementById('ep-work-id').value);
-  const epNum=parseInt(document.getElementById('ep-num').value)||1;
-  const deadlines={};
-  platforms.forEach(p=>{
-    const v=document.getElementById('ep-dl-'+platKey(p))?.value||'';
-    if(v) deadlines[platKey(p)]=v;
-  });
-  const ep={
-    id:editId?parseInt(editId):nextEpId++,
-    workId,epNum,
-    subtitle:document.getElementById('ep-subtitle').value.trim(),
-    subtitleKana:document.getElementById('ep-subtitle-kana').value.trim(),
-    deadlines,
-    releaseDate:document.getElementById('ep-release').value,
-    jpgLink:document.getElementById('ep-jpg-link').value.trim(),
-    thumbLink:document.getElementById('ep-thumb-link').value.trim(),
-    delivered:editId?(episodes.find(e=>e.id===parseInt(editId))?.delivered||false):false,
-  };
-  if(editId){
-    const idx=episodes.findIndex(e=>e.id===ep.id);
-    if(idx>=0)episodes[idx]=ep; else episodes.push(ep);
-  } else {
-    episodes.push(ep);
-  }
-  closeEpModal();
-  renderDelivery();
-  if(syncEnabled) syncToSheets();
-}
-function deleteEpisode(id){
-  if(!confirm('削除しますか？'))return;
-  episodes=episodes.filter(e=>e.id!==id);
-  renderDelivery();
-  if(syncEnabled) syncToSheets();
-}
-function toggleDelivered(id){
-  const ep=episodes.find(e=>e.id===id);
-  if(ep){ep.delivered=!ep.delivered;renderDelivery();if(syncEnabled)debouncedSync();}
-}
-function updateEpInline(id,field,val){
-  const ep=episodes.find(e=>e.id===id);
-  if(!ep)return;
-  ep[field]=val;
-  if(syncEnabled) debouncedSync();
-}
-function promptLink(epId,field){
-  const label=field==='jpgLink'?'制作完了 JPGリンク':'サムネイルフォルダリンク';
-  const cur=episodes.find(e=>e.id===epId)?.[field]||'';
-  const url=prompt(label+'を入力：',cur);
-  if(url===null)return;
-  const ep=episodes.find(e=>e.id===epId);
-  if(ep){ep[field]=url.trim();renderDelivery();if(syncEnabled)debouncedSync();}
-}
-
-// ---- ユーティリティ ----
-function earliestDeadline(ep){
-  const dates=Object.values(ep.deadlines||{}).filter(Boolean).sort();
-  return dates.length?dates[0]:null;
-}
+/* ---- ユーティリティ ---- */
+function platKey(name){return name.replace(/[^a-zA-Z0-9\u3040-\u30ff\u4e00-\u9fff]/g,'_').toLowerCase();}
 function fmtDate(d){
   if(!d)return'–';
   const dt=new Date(d+'T00:00:00');
@@ -2478,219 +2221,288 @@ function diffDays(d){
   const today=new Date();today.setHours(0,0,0,0);
   return Math.ceil((new Date(d+'T00:00:00')-today)/86400000);
 }
-function deadlineStyle(diff){
-  if(diff===null)return{color:'#ccc',weight:'400'};
-  if(diff<0)return{color:'#dc2626',weight:'700'};
-  if(diff<=2)return{color:'#ea580c',weight:'700'};
-  if(diff<=7)return{color:'#ca8a04',weight:'700'};
-  return{color:'#1a1a1a',weight:'400'};
+function addDays(dateStr,n){
+  const d=new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
 }
 
-// ---- メインレンダリング ----
+/* ---- 連載設定から連載日・入庫日を計算 ---- */
+function calcReleaseDate(wid, epNum){
+  const cfg=workEpData[wid];
+  if(!cfg||!cfg.startDate||!cfg.startEp)return null;
+  const offset=epNum-cfg.startEp;
+  if(offset<0)return null;
+  return addDays(cfg.startDate, offset*7);
+}
+function calcDeadlineDate(releaseDate){
+  if(!releaseDate)return null;
+  return addDays(releaseDate,-21); // 3週前
+}
+
+/* ---- 進行状況の作品変更時に自動でエピソードを同期 ---- */
+function syncEpisodesForWork(wid){
+  const w=works.find(x=>x.id===wid);
+  if(!w)return;
+  const cfg=workEpData[wid];
+  if(!cfg||!cfg.startDate||!cfg.startEp)return;
+
+  const startEp=cfg.startEp;
+  const totalEps=w.totalEps||0;
+
+  for(let ep=startEp;ep<=totalEps;ep++){
+    const exists=episodes.find(e=>e.workId===wid&&e.epNum===ep);
+    if(!exists){
+      episodes.push({
+        id:nextEpId++,
+        workId:wid,epNum:ep,
+        subtitle:'',subtitleKana:'',
+        fixDone:false,thumbLink:'',jpgLink:'',
+        delivered:false,overrideRelease:''
+      });
+    }
+  }
+  // 全話数を超えた話は削除
+  episodes=episodes.filter(e=>!(e.workId===wid&&e.epNum>totalEps));
+}
+
+function syncAllEpisodes(){
+  works.forEach(w=>{syncEpisodesForWork(w.id);});
+}
+
+/* ---- 連載設定モーダル ---- */
+function openDlvSettingModal(wid){
+  const w=works.find(x=>x.id===wid);if(!w)return;
+  const cfg=workEpData[wid]||{};
+  document.getElementById('dlv-setting-wid').value=wid;
+  document.getElementById('dlv-setting-startdate').value=cfg.startDate||w.startDate||'';
+  document.getElementById('dlv-setting-startep').value=cfg.startEp||w.startEp||1;
+  document.getElementById('dlv-setting-modal').style.display='flex';
+}
+function closeDlvSettingModal(){
+  document.getElementById('dlv-setting-modal').style.display='none';
+}
+function saveDlvSetting(){
+  const wid=parseInt(document.getElementById('dlv-setting-wid').value);
+  const startDate=document.getElementById('dlv-setting-startdate').value;
+  const startEp=parseInt(document.getElementById('dlv-setting-startep').value)||1;
+  workEpData[wid]={startDate,startEp};
+  syncEpisodesForWork(wid);
+  closeDlvSettingModal();
+  renderDelivery();
+  if(syncEnabled)syncToSheets();
+}
+
+/* ---- プラットフォーム管理 ---- */
+function openPlatformManager(){
+  document.getElementById('plat-modal').style.display='flex';
+  renderPlatformList();
+}
+function closePlatformManager(){
+  document.getElementById('plat-modal').style.display='none';
+  renderDelivery();
+  if(syncEnabled)syncToSheets();
+}
+function renderPlatformList(){
+  const el=document.getElementById('plat-list');if(!el)return;
+  el.innerHTML=platforms.map((p,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#f9f9f9;border-radius:6px;margin-bottom:6px;">
+      <span style="font-size:13px;">${p}</span>
+      <button class="btn btn-sm btn-danger" onclick="deletePlatform(${i})" style="font-size:10px;padding:2px 6px;">削除</button>
+    </div>`).join('')||'<div style="color:#aaa;font-size:12px;">プラットフォームがありません</div>';
+}
+function addPlatform(){
+  const inp=document.getElementById('plat-new-name');
+  const name=inp.value.trim();
+  if(!name||platforms.includes(name))return;
+  platforms.push(name);inp.value='';renderPlatformList();
+}
+function deletePlatform(i){platforms.splice(i,1);renderPlatformList();}
+
+/* ---- エピソードデータ更新 ---- */
+function updateEpField(epId,field,val){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  ep[field]=val;
+  if(syncEnabled)debouncedSync();
+}
+function toggleEpField(epId,field){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  ep[field]=!ep[field];
+  renderDelivery();
+  if(syncEnabled)debouncedSync();
+}
+function promptEpLink(epId,field){
+  const ep=episodes.find(e=>e.id===epId);if(!ep)return;
+  const label=field==='jpgLink'?'制作完了 JPGリンク':'サムネイルフォルダリンク';
+  const url=prompt(label+'を入力：',ep[field]||'');
+  if(url===null)return;
+  ep[field]=url.trim();
+  renderDelivery();
+  if(syncEnabled)debouncedSync();
+}
+
+/* ---- メインレンダリング ---- */
 function renderDelivery(){
-  buildDlvWorkFilter();
-  const wf=document.getElementById('dlv-work-filter')?.value||'all';
-  const range=document.getElementById('dlv-range')?.value||'2w';
-  const sf=document.getElementById('dlv-status-filter')?.value||'all';
-  const sort=document.getElementById('dlv-sort')?.value||'deadline';
+  syncAllEpisodes(); // 作品情報と同期
+  const container=document.getElementById('dlv-works-list');
+  if(!container)return;
 
   const today=new Date();today.setHours(0,0,0,0);
-  const rangeEnd=new Date(today);
-  if(range==='2w') rangeEnd.setDate(rangeEnd.getDate()+14);
-  else if(range==='1m') rangeEnd.setDate(rangeEnd.getDate()+31);
 
-  let list=[...episodes];
-  if(wf!=='all') list=list.filter(e=>e.workId==wf);
-  if(sf==='incomplete') list=list.filter(e=>!e.delivered);
-  if(sf==='complete') list=list.filter(e=>e.delivered);
-  if(range!=='all'){
-    list=list.filter(e=>{
-      // 納品日か連載日のどちらかが範囲内なら表示
-      const d=earliestDeadline(e)||e.releaseDate;
-      if(!d)return true; // 日付が何もない場合は表示する
-      return new Date(d+'T00:00:00')<=rangeEnd;
-    });
-  }
-  if(sort==='deadline') list.sort((a,b)=>{
-    const da=earliestDeadline(a)||a.releaseDate||'9999';
-    const db=earliestDeadline(b)||b.releaseDate||'9999';
-    return da.localeCompare(db);
+  // 連載中の作品のみ（startDateがある）
+  const activeWorks=works.filter(w=>{
+    const cfg=workEpData[w.id];
+    return cfg&&cfg.startDate;
   });
-  else if(sort==='work') list.sort((a,b)=>(works.find(w=>w.id===a.workId)?.title||'').localeCompare(works.find(w=>w.id===b.workId)?.title||'','ja'));
-  else if(sort==='ep') list.sort((a,b)=>a.epNum-b.epNum);
 
-  // ヘッダー構築（動的プラットフォーム）
-  const thead=document.getElementById('dlv-thead-row');
-  if(thead){
-    thead.innerHTML=`
-      <th style="text-align:left;padding:8px 10px;white-space:nowrap;">作品名</th>
-      <th style="text-align:center;padding:8px 6px;white-space:nowrap;">話数</th>
-      <th style="text-align:left;padding:8px 8px;white-space:nowrap;">サブタイトル</th>
-      <th style="text-align:left;padding:8px 8px;white-space:nowrap;">カタカナ</th>
-      <th style="text-align:center;padding:8px 6px;white-space:nowrap;">制作<br/><span style="font-size:9px;color:#aaa;">JPG</span></th>
-      <th style="text-align:center;padding:8px 6px;white-space:nowrap;">サムネ<br/><span style="font-size:9px;color:#aaa;">フォルダ</span></th>
-      ${platforms.map(p=>`<th style="text-align:center;padding:8px 6px;white-space:nowrap;">${p}<br/><span style="font-size:9px;color:#aaa;">納品日</span></th>`).join('')}
-      <th style="text-align:center;padding:8px 6px;white-space:nowrap;">連載日</th>
-      <th style="text-align:center;padding:8px 6px;white-space:nowrap;">納品済</th>
-      <th style="padding:8px 4px;"></th>`;
+  if(!activeWorks.length){
+    container.innerHTML=`<div class="card" style="text-align:center;padding:32px;color:#aaa;">
+      <div style="font-size:14px;margin-bottom:8px;">連載設定がありません</div>
+      <div style="font-size:12px;">各作品の ⚙️ 連載設定 から開始日と開始話数を設定してください</div>
+    </div>`;
+    return;
   }
 
-  const tbody=document.getElementById('dlv-tbody');
-  if(!tbody)return;
-  if(!list.length){
-    const colSpan=6+platforms.length+3;
-    tbody.innerHTML=`<tr><td colspan="${colSpan}" style="text-align:center;color:#aaa;padding:24px;">該当するデータがありません</td></tr>`;
-  } else {
-    tbody.innerHTML=list.map(ep=>{
-      const w=works.find(x=>x.id===ep.workId);
-      const rowBg=ep.delivered?'#f0fdf4':'#fff';
-      const platCells=platforms.map(p=>{
-        const key=platKey(p);
-        const d=ep.deadlines?.[key]||'';
-        const diff=d?diffDays(d):null;
-        const st=deadlineStyle(diff);
-        return`<td style="text-align:center;padding:6px 4px;white-space:nowrap;">
-          ${d?`<span style="color:${st.color};font-weight:${st.weight};font-size:12px;">${fmtDate(d)}</span>
-          <br/><span style="font-size:9px;color:${st.color};">${diff===0?'今日':diff<0?`${Math.abs(diff)}日超過`:`あと${diff}日`}</span>`
-          :'<span style="color:#e5e5e5;">–</span>'}
-        </td>`;
+  container.innerHTML=activeWorks.map(w=>{
+    const cfg=workEpData[w.id];
+    const wEps=episodes.filter(e=>e.workId===w.id).sort((a,b)=>a.epNum-b.epNum);
+    const isOpen=dlvOpenIds.has(w.id);
+    const fixCount=wEps.filter(e=>e.fixDone).length;
+    const deliveredCount=wEps.filter(e=>e.delivered).length;
+
+    // 今週連載される話（今日から7日以内）
+    const weekEnd=new Date(today.getTime()+7*86400000);
+    const thisWeekEps=wEps.filter(e=>{
+      const rd=e.overrideRelease||calcReleaseDate(w.id,e.epNum);
+      if(!rd)return false;
+      const dt=new Date(rd+'T00:00:00');
+      return dt>=today&&dt<=weekEnd;
+    });
+
+    // サマリー行（折りたたみ時）
+    const summaryHtml=`
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#555;">
+        <span>✅ FIX完了：<strong>${fixCount}/${wEps.length}話</strong></span>
+        <span>📦 入庫完了：<strong>${deliveredCount}/${wEps.length}話</strong></span>
+        ${thisWeekEps.length?`<span style="color:#ca8a04;font-weight:700;">📅 今週連載：${thisWeekEps.map(e=>{
+          const rd=e.overrideRelease||calcReleaseDate(w.id,e.epNum);
+          return`第${e.epNum}話（${fmtDate(rd)}）`;
+        }).join('、')}</span>`:'<span style="color:#aaa;">今週の連載なし</span>'}
+      </div>`;
+
+    // 詳細テーブル（展開時）
+    let detailHtml='';
+    if(isOpen){
+      const platHeaders=platforms.map(p=>`
+        <th style="text-align:center;padding:6px 4px;white-space:nowrap;min-width:80px;">
+          ${p}<br/>
+          <span style="font-size:9px;color:#2563eb;">連載日</span><br/>
+          <span style="font-size:9px;color:#dc2626;">入庫〆</span>
+        </th>`).join('');
+
+      const rows=wEps.map(ep=>{
+        const releaseDate=ep.overrideRelease||calcReleaseDate(w.id,ep.epNum)||'';
+        const deadlineDate=calcDeadlineDate(releaseDate);
+        const diffR=diffDays(releaseDate);
+        const diffD=diffDays(deadlineDate);
+
+        const isThisWeek=releaseDate&&(()=>{const dt=new Date(releaseDate+'T00:00:00');return dt>=today&&dt<=weekEnd;})();
+        const rowBg=ep.delivered?'#f0fdf4':isThisWeek?'#fffbeb':'#fff';
+
+        const platCells=platforms.map(()=>{
+          // 各プラットフォームの連載日・入庫〆日は同じ（共通）
+          const stR={color:diffR===null?'#ccc':diffR<0?'#dc2626':diffR<=3?'#ea580c':diffR<=7?'#ca8a04':'#555',weight:diffR!==null&&diffR<=7?'700':'400'};
+          const stD={color:diffD===null?'#ccc':diffD<0?'#dc2626':diffD<=3?'#ea580c':diffD<=7?'#ca8a04':'#888',weight:diffD!==null&&diffD<=3?'700':'400'};
+          return`<td style="text-align:center;padding:5px 4px;">
+            <div style="color:${stR.color};font-weight:${stR.weight};font-size:11px;">${releaseDate?fmtDate(releaseDate):'–'}</div>
+            <div style="color:${stD.color};font-weight:${stD.weight};font-size:10px;margin-top:2px;">${deadlineDate?fmtDate(deadlineDate):'–'}</div>
+          </td>`;
+        }).join('');
+
+        return`<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
+          <td style="padding:5px 8px;font-weight:700;text-align:center;white-space:nowrap;">第${ep.epNum}話</td>
+          <td style="padding:5px 6px;">
+            <input type="text" value="${ep.subtitle||''}" onchange="updateEpField(${ep.id},'subtitle',this.value)"
+              style="width:100%;border:none;background:transparent;font-size:12px;outline:none;border-bottom:1px solid #f0f0f0;" placeholder="サブタイトル"/>
+          </td>
+          <td style="padding:5px 6px;">
+            <input type="text" value="${ep.subtitleKana||''}" onchange="updateEpField(${ep.id},'subtitleKana',this.value)"
+              style="width:100%;border:none;background:transparent;font-size:12px;outline:none;border-bottom:1px solid #f0f0f0;" placeholder="カタカナ"/>
+          </td>
+          <td style="text-align:center;padding:5px 4px;">
+            <label style="cursor:pointer;font-size:16px;" onclick="toggleEpField(${ep.id},'fixDone')">${ep.fixDone?'✅':'⬜'}</label>
+          </td>
+          <td style="text-align:center;padding:5px 4px;">
+            ${ep.thumbLink
+              ?`<a href="${ep.thumbLink}" target="_blank" style="font-size:13px;">✅</a>`
+              :`<button class="btn btn-sm" onclick="promptEpLink(${ep.id},'thumbLink')" style="font-size:10px;padding:2px 4px;">登録</button>`}
+          </td>
+          ${platCells}
+          <td style="text-align:center;padding:5px 4px;">
+            <label style="cursor:pointer;font-size:16px;" onclick="toggleEpField(${ep.id},'delivered')">${ep.delivered?'✅':'⬜'}</label>
+          </td>
+        </tr>`;
       }).join('');
-      return`<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
-        <td style="padding:6px 10px;font-weight:600;white-space:nowrap;">${w?.title||'–'}</td>
-        <td style="text-align:center;padding:6px 6px;font-weight:700;">${ep.epNum}話</td>
-        <td style="padding:6px 8px;min-width:100px;">
-          <input type="text" value="${ep.subtitle||''}" onchange="updateEpInline(${ep.id},'subtitle',this.value)"
-            style="width:100%;border:none;background:transparent;font-size:12px;outline:none;border-bottom:1px solid #eee;" placeholder="サブタイトル"/>
-        </td>
-        <td style="padding:6px 8px;min-width:80px;">
-          <input type="text" value="${ep.subtitleKana||''}" onchange="updateEpInline(${ep.id},'subtitleKana',this.value)"
-            style="width:100%;border:none;background:transparent;font-size:12px;outline:none;border-bottom:1px solid #eee;" placeholder="カタカナ"/>
-        </td>
-        <td style="text-align:center;padding:6px 4px;">
-          ${ep.jpgLink
-            ?`<a href="${ep.jpgLink}" target="_blank" title="${ep.jpgLink}" style="font-size:13px;">✅</a>`
-            :`<button class="btn btn-sm" onclick="promptLink(${ep.id},'jpgLink')" style="font-size:10px;">登録</button>`}
-        </td>
-        <td style="text-align:center;padding:6px 4px;">
-          ${ep.thumbLink
-            ?`<a href="${ep.thumbLink}" target="_blank" title="${ep.thumbLink}" style="font-size:13px;">✅</a>`
-            :`<button class="btn btn-sm" onclick="promptLink(${ep.id},'thumbLink')" style="font-size:10px;">登録</button>`}
-        </td>
-        ${platCells}
-        <td style="text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;">${ep.releaseDate?fmtDate(ep.releaseDate):'–'}</td>
-        <td style="text-align:center;padding:6px 4px;">
-          <label style="cursor:pointer;font-size:16px;" onclick="toggleDelivered(${ep.id})">${ep.delivered?'✅':'⬜'}</label>
-        </td>
-        <td style="padding:6px 4px;text-align:center;white-space:nowrap;">
-          <button class="btn btn-sm" onclick="openAddEpisodeModal(${ep.id})" style="font-size:10px;padding:2px 5px;">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteEpisode(${ep.id})" style="font-size:10px;padding:2px 5px;margin-left:2px;">×</button>
-        </td>
-      </tr>`;
-    }).join('');
-  }
 
-  renderWeeklySummary();
+      detailHtml=`<div style="margin-top:12px;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f5f5f5;">
+              <th style="padding:6px 8px;text-align:center;white-space:nowrap;">話数</th>
+              <th style="padding:6px 8px;text-align:left;white-space:nowrap;min-width:100px;">サブタイトル</th>
+              <th style="padding:6px 8px;text-align:left;white-space:nowrap;min-width:80px;">カタカナ</th>
+              <th style="padding:6px 4px;text-align:center;white-space:nowrap;">FIX</th>
+              <th style="padding:6px 4px;text-align:center;white-space:nowrap;">サムネ</th>
+              ${platHeaders}
+              <th style="padding:6px 4px;text-align:center;white-space:nowrap;">入庫済</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    return`<div class="card" style="margin-bottom:12px;" id="dlv-card-${w.id}">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;cursor:pointer;" onclick="toggleDlvWork(${w.id})">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="work-badge" style="flex-shrink:0;">${w.title.slice(0,2)}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;">${w.title}</div>
+              <div style="font-size:11px;color:#888;">${w.partner||'–'}　全${w.totalEps}話　連載開始：${cfg.startDate||'–'}（第${cfg.startEp||1}話〜）</div>
+            </div>
+            <span style="font-size:14px;color:#aaa;margin-left:auto;">${isOpen?'▲':'▼'}</span>
+          </div>
+          ${summaryHtml}
+        </div>
+        <button class="btn btn-sm" onclick="openDlvSettingModal(${w.id})" style="flex-shrink:0;font-size:11px;">⚙️ 連載設定</button>
+      </div>
+      ${detailHtml}
+    </div>`;
+  }).join('');
+
+  // 未設定の作品も表示（設定ボタンのみ）
+  const unset=works.filter(w=>!workEpData[w.id]||!workEpData[w.id].startDate);
+  if(unset.length){
+    const unsetHtml=unset.map(w=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fafafa;border-radius:8px;border:1px solid #eee;margin-bottom:6px;">
+        <div>
+          <span style="font-weight:600;font-size:13px;">${w.title}</span>
+          <span style="font-size:11px;color:#aaa;margin-left:8px;">${w.partner||'–'}　全${w.totalEps}話</span>
+        </div>
+        <button class="btn btn-sm" onclick="openDlvSettingModal(${w.id})" style="font-size:11px;">⚙️ 連載設定</button>
+      </div>`).join('');
+    container.innerHTML+=`<div class="card" style="margin-top:12px;">
+      <div style="font-size:13px;font-weight:700;color:#888;margin-bottom:10px;">連載設定未完了の作品</div>
+      ${unsetHtml}
+    </div>`;
+  }
 }
 
-function renderWeeklySummary(){
-  const box=document.getElementById('dlv-weekly-summary');
-  if(!box)return;
-  const today=new Date();today.setHours(0,0,0,0);
-  const weekEnd=new Date(today);weekEnd.setDate(weekEnd.getDate()+14);
-
-  let html='';
-  platforms.forEach(p=>{
-    const key=platKey(p);
-    const due=episodes.filter(ep=>{
-      const d=ep.deadlines?.[key];if(!d)return false;
-      const dt=new Date(d+'T00:00:00');
-      return dt>=today&&dt<=weekEnd;
-    }).sort((a,b)=>(a.deadlines[key]||'').localeCompare(b.deadlines[key]||''));
-    if(!due.length)return;
-    html+=`<div style="margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;margin-bottom:6px;padding:4px 8px;background:#f0f7ff;border-left:3px solid #2563eb;border-radius:0 4px 4px 0;">📤 ${p}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr style="background:#fafafa;">
-          <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;">作品</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">話数</th>
-          <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;">サブタイトル</th>
-          <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;">カタカナ</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">納品日</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">連載日</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">制作</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">サムネ</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">納品済</th>
-        </tr></thead>
-        <tbody>
-          ${due.map(ep=>{
-            const w=works.find(x=>x.id===ep.workId);
-            const d=ep.deadlines[key];
-            const diff=diffDays(d);
-            const st=deadlineStyle(diff);
-            return`<tr style="border-bottom:1px solid #f5f5f5;background:${ep.delivered?'#f0fdf4':'#fff'};">
-              <td style="padding:5px 8px;font-weight:600;">${w?.title||'–'}</td>
-              <td style="padding:5px 8px;text-align:center;font-weight:700;">${ep.epNum}話</td>
-              <td style="padding:5px 8px;">${ep.subtitle||'–'}</td>
-              <td style="padding:5px 8px;color:#555;">${ep.subtitleKana||'–'}</td>
-              <td style="padding:5px 8px;text-align:center;color:${st.color};font-weight:${st.weight};">
-                ${fmtDate(d)}<br/><span style="font-size:9px;">${diff===0?'今日':diff<0?`${Math.abs(diff)}日超過`:`あと${diff}日`}</span>
-              </td>
-              <td style="padding:5px 8px;text-align:center;">${ep.releaseDate?fmtDate(ep.releaseDate):'–'}</td>
-              <td style="padding:5px 8px;text-align:center;">${ep.jpgLink?`<a href="${ep.jpgLink}" target="_blank">✅</a>`:'<span style="color:#ddd;">–</span>'}</td>
-              <td style="padding:5px 8px;text-align:center;">${ep.thumbLink?`<a href="${ep.thumbLink}" target="_blank">✅</a>`:'<span style="color:#ddd;">–</span>'}</td>
-              <td style="padding:5px 8px;text-align:center;">${ep.delivered?'✅':'⬜'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-  });
-
-  // 連載日ベースのセクション（納品日未設定のエピソード）
-  const releaseOnly=episodes.filter(ep=>{
-    if(!ep.releaseDate)return false;
-    const hasDl=platforms.some(p=>ep.deadlines?.[platKey(p)]);
-    if(hasDl)return false; // 납품일이 있으면 위에서 처리됨
-    const dt=new Date(ep.releaseDate+'T00:00:00');
-    return dt>=today&&dt<=weekEnd;
-  }).sort((a,b)=>(a.releaseDate||'').localeCompare(b.releaseDate||''));
-
-  if(releaseOnly.length){
-    html+=`<div style="margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;margin-bottom:6px;padding:4px 8px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 4px 4px 0;">📅 連載予定（納品日未設定）</div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr style="background:#fafafa;">
-          <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;">作品</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">話数</th>
-          <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #eee;">サブタイトル</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">連載日</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">制作</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">サムネ</th>
-          <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #eee;">納品済</th>
-        </tr></thead>
-        <tbody>
-          ${releaseOnly.map(ep=>{
-            const w=works.find(x=>x.id===ep.workId);
-            const diff=diffDays(ep.releaseDate);
-            const st=deadlineStyle(diff);
-            return`<tr style="border-bottom:1px solid #f5f5f5;background:${ep.delivered?'#f0fdf4':'#fff'};">
-              <td style="padding:5px 8px;font-weight:600;">${w?.title||'–'}</td>
-              <td style="padding:5px 8px;text-align:center;font-weight:700;">${ep.epNum}話</td>
-              <td style="padding:5px 8px;">${ep.subtitle||'<span style="color:#ccc;">未設定</span>'}</td>
-              <td style="padding:5px 8px;text-align:center;color:${st.color};font-weight:${st.weight};">
-                ${fmtDate(ep.releaseDate)}<br/><span style="font-size:9px;">${diff===0?'今日':diff<0?`${Math.abs(diff)}日超過`:`あと${diff}日`}</span>
-              </td>
-              <td style="padding:5px 8px;text-align:center;">${ep.jpgLink?`<a href="${ep.jpgLink}" target="_blank">✅</a>`:'<span style="color:#ddd;">–</span>'}</td>
-              <td style="padding:5px 8px;text-align:center;">${ep.thumbLink?`<a href="${ep.thumbLink}" target="_blank">✅</a>`:'<span style="color:#ddd;">–</span>'}</td>
-              <td style="padding:5px 8px;text-align:center;">${ep.delivered?'✅':'⬜'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-  }
-
-  box.innerHTML=html||'<div style="color:#aaa;font-size:12px;text-align:center;padding:16px;">2週間以内の連載・納品予定はありません</div>';
+function toggleDlvWork(id){
+  if(dlvOpenIds.has(id))dlvOpenIds.delete(id);
+  else dlvOpenIds.add(id);
+  renderDelivery();
 }
 
 function initApp(){
