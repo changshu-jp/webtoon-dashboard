@@ -2106,11 +2106,12 @@ function renderCostInputs(w){
           <td style="padding:8px 10px;">
             <div style="font-weight:600;">諸経費・その他人件費</div>
             <div style="font-size:10px;color:#888;margin-top:3px;">
-              ${isEdit?`<span style="display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;">
-                <button onclick="setOverheadMode(${w.id},'pct')" style="padding:2px 8px;font-size:10px;border:none;cursor:pointer;background:${!(ovh.fixedAmount>0)?'#1d4ed8':'#f5f5f5'};color:${!(ovh.fixedAmount>0)?'#fff':'#555'};">％方式</button>
-                <button onclick="setOverheadMode(${w.id},'fixed')" style="padding:2px 8px;font-size:10px;border:none;cursor:pointer;background:${ovh.fixedAmount>0?'#1d4ed8':'#f5f5f5'};color:${ovh.fixedAmount>0?'#fff':'#555'};">固定金額</button>
-              </span>`
-              :(ovh.fixedAmount>0?'固定金額':'MG除く変動費の%')}
+              ${isEdit
+                ?`<span style="display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;cursor:pointer;">
+                  <span id="ovh-pct-btn-${w.id}" onclick="setOverheadMode(${w.id},'pct')" style="padding:2px 8px;font-size:10px;background:${!(ovh.fixedAmount>0)?'#1d4ed8':'#f5f5f5'};color:${!(ovh.fixedAmount>0)?'#fff':'#555'};cursor:pointer;user-select:none;">％方式</span>
+                  <span id="ovh-fix-btn-${w.id}" onclick="setOverheadMode(${w.id},'fixed')" style="padding:2px 8px;font-size:10px;background:${ovh.fixedAmount>0?'#1d4ed8':'#f5f5f5'};color:${ovh.fixedAmount>0?'#fff':'#555'};cursor:pointer;user-select:none;">固定金額</span>
+                </span>`
+                :(ovh.fixedAmount>0?'固定金額':'MG除く変動費の%')}
             </div>
           </td>
           <td style="padding:8px 10px;text-align:right;">
