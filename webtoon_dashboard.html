@@ -2107,9 +2107,9 @@ function renderCostInputs(w){
             <div style="font-weight:600;">諸経費・その他人件費</div>
             <div style="font-size:10px;color:#888;margin-top:3px;">
               ${isEdit
-                ?`<span style="display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;cursor:pointer;">
-                  <span id="ovh-pct-btn-${w.id}" onclick="setOverheadMode(${w.id},'pct')" style="padding:2px 8px;font-size:10px;background:${!(ovh.fixedAmount>0)?'#1d4ed8':'#f5f5f5'};color:${!(ovh.fixedAmount>0)?'#fff':'#555'};cursor:pointer;user-select:none;">％方式</span>
-                  <span id="ovh-fix-btn-${w.id}" onclick="setOverheadMode(${w.id},'fixed')" style="padding:2px 8px;font-size:10px;background:${ovh.fixedAmount>0?'#1d4ed8':'#f5f5f5'};color:${ovh.fixedAmount>0?'#fff':'#555'};cursor:pointer;user-select:none;">固定金額</span>
+                ?`<span style="display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;">
+                  <span data-ovh-mode="pct" data-wid="${w.id}" style="padding:3px 10px;font-size:10px;background:${!(ovh.fixedAmount>0)?'#1d4ed8':'#f5f5f5'};color:${!(ovh.fixedAmount>0)?'#fff':'#555'};cursor:pointer;user-select:none;">％方式</span>
+                  <span data-ovh-mode="fixed" data-wid="${w.id}" style="padding:3px 10px;font-size:10px;background:${ovh.fixedAmount>0?'#1d4ed8':'#f5f5f5'};color:${ovh.fixedAmount>0?'#fff':'#555'};cursor:pointer;user-select:none;">固定金額</span>
                 </span>`
                 :(ovh.fixedAmount>0?'固定金額':'MG除く変動費の%')}
             </div>
@@ -3347,6 +3347,15 @@ function toggleDlvWork(id){
   else dlvOpenIds.add(id);
   renderDelivery();
 }
+
+// 諸経費モード切替のイベント委譲（innerHTML内のspanクリックに対応）
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-ovh-mode]');
+  if(!el)return;
+  const mode=el.dataset.ovhMode;
+  const wid=parseInt(el.dataset.wid);
+  if(mode&&wid) setOverheadMode(wid,mode);
+});
 
 function initApp(){
   const savedMail=localStorage.getItem('mailSettings');
