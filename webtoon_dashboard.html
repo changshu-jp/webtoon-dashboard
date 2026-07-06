@@ -662,7 +662,7 @@ function calcTotalCost(w){
   v+=(c.cover.amount||0);
   // 諸経費：%方式 or 固定金額方式
   const ovh=c.overhead||{};
-  const overhead=ovh.fixedAmount>0
+  const overhead=ovh.mode==='fixed'
     ? (ovh.fixedAmount||0)
     : Math.round(v*(ovh.pct||0)/100);
   v+=overhead;
@@ -1755,11 +1755,300 @@ function renderFinCards(){
 function renderCostInputsById(w){
   const target=document.getElementById('cost-inputs-'+w.id);
   if(!target) return;
-  target.id='cost-inputs';
-  renderCostInputs(w);
-  target.id='cost-inputs-'+w.id;
+  renderCostInputsToEl(w, target);
 }
 
+function renderCostInputs(w){
+  const costEl=document.getElementById('cost-inputs');
+  if(!costEl) return;
+  renderCostInputsToEl(w, costEl);
+}
+
+function renderCostInputsToEl(w, costEl){
+  const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
+  const isEdit=!!costEditMode[w.id];
+
+  const editBtn=isEdit
+    ?`<button class="btn btn-sm btn-primary" onclick="saveCostEdit(${w.id})" style="font-size:12px;">💾 保存</button>`
+    :`<button class="btn btn-sm" onclick="toggleCostEdit(${w.id})" style="font-size:12px;">✏️ 編集</button>`;
+
+  // 入力ヘルパー
+  const inp=(val,onch,style='',type='number')=>isEdit
+    ?`<input class="c-in" type="${type}" value="${val}" onchange="${onch}" style="${style}"/>`
+    :`<span style="font-size:13px;font-weight:600;text-align:right;display:block;">${type==='number'?Number(val).toLocaleString():val}</span>`;
+  const textInp=(val,onch,ph='')=>isEdit
+    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="${ph}" style="font-size:11px;"/>`
+    :(val?`<span style="font-size:11px;color:#555;">${val}</span>`:`<span style="font-size:11px;color:#ccc;">–</span>`);
+
+  // MG
+  const curBtns=isEdit
+    ?`<div class="cur-sel" style="margin-bottom:4px;max-width:108px;"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>`
+    :`<span style="font-size:11px;color:#888;">${c.mg.currency} </span>`;
+  const mgAmt=inp(c.mg.amount||0,`setMG(${w.id},this.value)`);
+  const mgKrw=c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}</div>`:'';
+
+  // 翻訳チェック
+  const tc=c.transCheck;
+  const tcPerEp=perEpDisplay(tc,ep);
+  const tcTotal=calcDualCost(tc,ep);
+  function tcBlock(){
+    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tcPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
+    let html='';
+    if(tc.useOutsource){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${tc.outsource.perEp||0}" onchange="setDual(${w.id},'transCheck','outsource','perEp',this.value)" style="width:70px;" placeholder="円/話"/>
+          <span style="font-size:10px;color:#888;">円/話　第</span>
+          <input class="c-in" type="number" value="${tc.outsource.epFrom||1}" onchange="setDual(${w.id},'transCheck','outsource','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${tc.outsource.epTo||ep}" onchange="setDual(${w.id},'transCheck','outsource','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(tc.outsource.assignee,`setDual(${w.id},'transCheck','outsource','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    if(tc.useInhouse){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
+        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${tc.inhouse.hrRate||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrRate',this.value)" style="width:60px;" placeholder="円/h"/>
+          <span style="font-size:10px;color:#888;">円/h×</span>
+          <input class="c-in" type="number" step="0.25" value="${tc.inhouse.hrs||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrs',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">h　第</span>
+          <input class="c-in" type="number" value="${tc.inhouse.epFrom||1}" onchange="setDual(${w.id},'transCheck','inhouse','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${tc.inhouse.epTo||ep}" onchange="setDual(${w.id},'transCheck','inhouse','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(tc.inhouse.assignee,`setDual(${w.id},'transCheck','inhouse','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
+      ${!tc.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
+      ${!tc.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
+    </div>`;
+    return html;
+  }
+
+  // 写植
+  const ts=c.typesetting;
+  const tsPerEp=perEpDisplay(ts,ep);
+  const tsTotal=calcDualCost(ts,ep);
+  function tsBlock(){
+    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tsPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
+    let html='';
+    if(ts.useOutsource){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
+        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${ts.outsource.perEp||0}" onchange="setDual(${w.id},'typesetting','outsource','perEp',this.value)" style="width:70px;"/>
+          <span style="font-size:10px;color:#888;">円/話　第</span>
+          <input class="c-in" type="number" value="${ts.outsource.epFrom||1}" onchange="setDual(${w.id},'typesetting','outsource','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${ts.outsource.epTo||ep}" onchange="setDual(${w.id},'typesetting','outsource','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(ts.outsource.assignee,`setDual(${w.id},'typesetting','outsource','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    if(ts.useInhouse){
+      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
+        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input class="c-in" type="number" value="${ts.inhouse.hrRate||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrRate',this.value)" style="width:60px;"/>
+          <span style="font-size:10px;color:#888;">円/h×</span>
+          <input class="c-in" type="number" step="0.25" value="${ts.inhouse.hrs||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrs',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">h　第</span>
+          <input class="c-in" type="number" value="${ts.inhouse.epFrom||1}" onchange="setDual(${w.id},'typesetting','inhouse','epFrom',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">〜</span>
+          <input class="c-in" type="number" value="${ts.inhouse.epTo||ep}" onchange="setDual(${w.id},'typesetting','inhouse','epTo',this.value)" style="width:46px;"/>
+          <span style="font-size:10px;color:#888;">話</span>
+        </div>
+        <div style="margin-top:4px;">${textInp(ts.inhouse.assignee,`setDual(${w.id},'typesetting','inhouse','assignee',this.value)`,'担当者名')}</div>
+        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
+      </div>`;
+    }
+    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
+      ${!ts.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
+      ${!ts.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
+    </div>`;
+    return html;
+  }
+
+  const fixPerEp=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0));
+  const fixTotal=fixPerEp*ep;
+  const trlTotal=(c.translation.perEp||0)*ep;
+  const cvT=c.cover.amount||0;
+  const varBase=trlTotal+tcTotal+tsTotal+fixTotal+cvT;
+  const ovh=c.overhead||{};
+  const overhead=ovh.mode==='fixed'?(ovh.fixedAmount||0):Math.round(varBase*(ovh.pct||0)/100);
+  const grand=mj+varBase+overhead;
+
+  // 外注・社内の内訳計算
+  function calcOutsourceCost(item){
+    if(!item.useOutsource) return 0;
+    const eps=Math.max(0,(item.outsource.epTo||0)-(item.outsource.epFrom||0)+1);
+    return (item.outsource.perEp||0)*eps;
+  }
+  function calcInhouseCost(item){
+    if(!item.useInhouse) return 0;
+    const eps=Math.max(0,(item.inhouse.epTo||0)-(item.inhouse.epFrom||0)+1);
+    return Math.round((item.inhouse.hrRate||0)*(item.inhouse.hrs||0)*eps);
+  }
+  // 外注合計（翻訳・翻訳チェック外注・写植外注・書影）
+  const outsourceTotal = trlTotal
+    + calcOutsourceCost(c.transCheck)
+    + calcOutsourceCost(c.typesetting)
+    + cvT;
+  // 社内合計（翻訳チェック社内・写植社内・FIX）
+  const inhouseTotal = calcInhouseCost(c.transCheck)
+    + calcInhouseCost(c.typesetting)
+    + fixTotal;
+
+  // 担当者列の表示
+  const assigneeCell=(val,onch)=>isEdit
+    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="担当者" style="font-size:11px;width:90px;"/>`
+    :(val?`<span style="font-size:11px;">${val}</span>`:'<span style="font-size:11px;color:#ccc;">–</span>');
+
+  // 担当タイプ表示
+  function typeLabel(item){
+    const parts=[];
+    if(item.useOutsource)parts.push('外注');
+    if(item.useInhouse)parts.push('社内');
+    return parts.length?parts.join('/'):'–';
+  }
+
+  costEl.innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${editBtn}</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#fafafa;">
+        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">項目</th>
+        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">1話あたり</th>
+        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">合計</th>
+        <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当</th>
+        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当者</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></td>
+          <td style="padding:8px 10px;text-align:right;">${curBtns}${mgAmt}${mgKrw}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${mj.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">固定</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳</div></td>
+          <td style="padding:8px 10px;text-align:right;">${inp(c.translation.perEp||0,`setF(${w.id},'translation','perEp',this.value)`,'width:80px;text-align:right;')}<span style="font-size:10px;color:#888;">円/話</span></td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${trlTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.translation.assignee,`setF(${w.id},'translation','assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳チェック</div></td>
+          <td style="padding:8px 10px;">${tcBlock()}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tcTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(tc)}</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">写植</div></td>
+          <td style="padding:8px 10px;">${tsBlock()}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tsTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(ts)}</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">社内</div></td>
+          <td style="padding:8px 10px;">
+            ${isEdit?`<div class="ih">${inp(c.fix.hrRate||0,`setFix(${w.id},'hrRate',this.value)`,'width:60px;')}<span style="font-size:10px;color:#888;">円/h×</span>${inp(c.fix.hrs||0,`setFix(${w.id},'hrs',this.value)`,'width:46px;')}<span style="font-size:10px;color:#888;">h</span></div>`
+            :`<div style="text-align:right;font-size:13px;font-weight:600;">¥${fixPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`}
+          </td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${fixTotal.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">社内</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.fix.assignee,`setFix(${w.id},'assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:8px 10px;"><div style="font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></td>
+          <td style="padding:8px 10px;text-align:right;">${inp(cvT,`setF(${w.id},'cover','amount',this.value)`)}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${cvT.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
+          <td style="padding:8px 10px;">${assigneeCell(c.cover.assignee,`setF(${w.id},'cover','assignee',this.value)`)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;background:#fffbf0;">
+          <td style="padding:8px 10px;">
+            <div style="font-weight:600;">諸経費・その他人件費</div>
+            <div style="font-size:10px;color:#888;">
+              ${isEdit
+                ?`<div class="ovh-toggle-wrap" style="margin-top:2px;"></div>`
+                :(ovh.mode==='fixed'?'固定金額':'MG除く変動費の%')}
+            </div>
+          </td>
+          <td style="padding:8px 10px;text-align:right;">
+            ${isEdit
+              ?ovh.mode==='fixed'
+                ?`<div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;"><span style="font-size:11px;color:#888;">¥</span>${inp(ovh.fixedAmount||0,`setOverheadFixed(${w.id},this.value)`,'width:80px;text-align:right;')}</div>`
+                :`<div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">${inp(ovh.pct||0,`setOverhead(${w.id},this.value)`,'width:54px;text-align:right;')}<span style="font-size:12px;color:#888;">%</span></div>`
+              :ovh.fixedAmount>0
+                ?`<span style="font-size:13px;font-weight:600;">¥${(ovh.fixedAmount||0).toLocaleString()}</span>`
+                :`<span style="font-size:13px;font-weight:600;">${ovh.pct||0}%</span>`}
+          </td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${overhead.toLocaleString()}</td>
+          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">–</td>
+          <td style="padding:8px 10px;"></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="background:#f9f9f9;border-top:1px solid #eee;">
+          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#666;">外注費合計</td>
+          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#666;">¥${outsourceTotal.toLocaleString()}</td>
+          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#aaa;">翻訳・翻訳チェック外注・写植外注・書影</td>
+        </tr>
+        <tr style="background:#f0f7ff;border-top:1px solid #eee;">
+          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#1d4ed8;">社内費合計</td>
+          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#1d4ed8;">¥${inhouseTotal.toLocaleString()}</td>
+          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#93c5fd;">翻訳チェック社内・写植社内・FIX</td>
+        </tr>
+        <tr style="background:#f9f9f9;border-top:2px solid #ddd;">
+          <td colspan="2" style="padding:10px 10px;font-size:13px;font-weight:700;">合計制作費用 <span style="font-size:10px;font-weight:400;color:#888;">（MG + 外注 + 社内 + 諸経費）</span></td>
+          <td style="padding:10px 10px;text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>`;
+
+  // innerHTML挿入後に諸経費トグルボタンにDOMイベントを直接付与
+  if(isEdit){
+    const wrap=costEl.querySelector('.ovh-toggle-wrap');
+    console.log('[OHV] isEdit=true, costEl=', costEl, 'wrap=', wrap);
+    if(wrap){
+      wrap.innerHTML='';
+      const c_=w.costs.overhead||{};
+      const isPct=c_.mode!=='fixed';
+      const container=document.createElement('span');
+      container.style.cssText='display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;';
+      const btnPct=document.createElement('span');
+      btnPct.textContent='％方式';
+      btnPct.style.cssText='padding:3px 10px;font-size:10px;cursor:pointer;background:'+(isPct?'#1d4ed8':'#f5f5f5')+';color:'+(isPct?'#fff':'#555')+';';
+      btnPct.addEventListener('click',function(){console.log('[OHV] pct clicked');setOverheadMode(w.id,'pct');});
+      const btnFix=document.createElement('span');
+      btnFix.textContent='固定金額';
+      btnFix.style.cssText='padding:3px 10px;font-size:10px;cursor:pointer;background:'+(!isPct?'#1d4ed8':'#f5f5f5')+';color:'+(!isPct?'#fff':'#555')+';';
+      btnFix.addEventListener('click',function(){console.log('[OHV] fixed clicked');setOverheadMode(w.id,'fixed');});
+      container.appendChild(btnPct);
+      container.appendChild(btnFix);
+      wrap.appendChild(container);
+      console.log('[OHV] buttons created and appended');
+    } else {
+      console.log('[OHV] wrap NOT FOUND - innerHTML=', costEl.innerHTML.substring(0, 500));
+    }
+  }
+}
 function renderRevPLHtml(w){
   const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
   return`<div class="pl-row"><span>累計配信売上</span><span>¥${rv.gross.toLocaleString()}</span></div>
@@ -1886,268 +2175,11 @@ function renderMetrics(w){
 let costEditMode={}; // workId → true/false
 
 function renderCostInputs(w){
-  const c=w.costs,ep=w.totalEps,mj=mgJPY(w);
-  const isEdit=!!costEditMode[w.id];
-
-  const editBtn=isEdit
-    ?`<button class="btn btn-sm btn-primary" onclick="saveCostEdit(${w.id})" style="font-size:12px;">💾 保存</button>`
-    :`<button class="btn btn-sm" onclick="toggleCostEdit(${w.id})" style="font-size:12px;">✏️ 編集</button>`;
-
-  // 入力ヘルパー
-  const inp=(val,onch,style='',type='number')=>isEdit
-    ?`<input class="c-in" type="${type}" value="${val}" onchange="${onch}" style="${style}"/>`
-    :`<span style="font-size:13px;font-weight:600;text-align:right;display:block;">${type==='number'?Number(val).toLocaleString():val}</span>`;
-  const textInp=(val,onch,ph='')=>isEdit
-    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="${ph}" style="font-size:11px;"/>`
-    :(val?`<span style="font-size:11px;color:#555;">${val}</span>`:`<span style="font-size:11px;color:#ccc;">–</span>`);
-
-  // MG
-  const curBtns=isEdit
-    ?`<div class="cur-sel" style="margin-bottom:4px;max-width:108px;"><button class="cur-btn ${c.mg.currency==='KRW'?'active':''}" onclick="setCur(${w.id},'KRW')">KRW</button><button class="cur-btn ${c.mg.currency==='JPY'?'active':''}" onclick="setCur(${w.id},'JPY')">JPY</button></div>`
-    :`<span style="font-size:11px;color:#888;">${c.mg.currency} </span>`;
-  const mgAmt=inp(c.mg.amount||0,`setMG(${w.id},this.value)`);
-  const mgKrw=c.mg.currency==='KRW'?`<div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">≒ ¥${mj.toLocaleString()}</div>`:'';
-
-  // 翻訳チェック
-  const tc=c.transCheck;
-  const tcPerEp=perEpDisplay(tc,ep);
-  const tcTotal=calcDualCost(tc,ep);
-  function tcBlock(){
-    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tcPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
-    let html='';
-    if(tc.useOutsource){
-      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
-        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <input class="c-in" type="number" value="${tc.outsource.perEp||0}" onchange="setDual(${w.id},'transCheck','outsource','perEp',this.value)" style="width:70px;" placeholder="円/話"/>
-          <span style="font-size:10px;color:#888;">円/話　第</span>
-          <input class="c-in" type="number" value="${tc.outsource.epFrom||1}" onchange="setDual(${w.id},'transCheck','outsource','epFrom',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">〜</span>
-          <input class="c-in" type="number" value="${tc.outsource.epTo||ep}" onchange="setDual(${w.id},'transCheck','outsource','epTo',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">話</span>
-        </div>
-        <div style="margin-top:4px;">${textInp(tc.outsource.assignee,`setDual(${w.id},'transCheck','outsource','assignee',this.value)`,'担当者名')}</div>
-        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
-      </div>`;
-    }
-    if(tc.useInhouse){
-      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
-        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <input class="c-in" type="number" value="${tc.inhouse.hrRate||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrRate',this.value)" style="width:60px;" placeholder="円/h"/>
-          <span style="font-size:10px;color:#888;">円/h×</span>
-          <input class="c-in" type="number" step="0.25" value="${tc.inhouse.hrs||0}" onchange="setDual(${w.id},'transCheck','inhouse','hrs',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">h　第</span>
-          <input class="c-in" type="number" value="${tc.inhouse.epFrom||1}" onchange="setDual(${w.id},'transCheck','inhouse','epFrom',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">〜</span>
-          <input class="c-in" type="number" value="${tc.inhouse.epTo||ep}" onchange="setDual(${w.id},'transCheck','inhouse','epTo',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">話</span>
-        </div>
-        <div style="margin-top:4px;">${textInp(tc.inhouse.assignee,`setDual(${w.id},'transCheck','inhouse','assignee',this.value)`,'担当者名')}</div>
-        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'transCheck','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
-      </div>`;
-    }
-    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
-      ${!tc.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
-      ${!tc.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'transCheck','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
-    </div>`;
-    return html;
-  }
-
-  // 写植
-  const ts=c.typesetting;
-  const tsPerEp=perEpDisplay(ts,ep);
-  const tsTotal=calcDualCost(ts,ep);
-  function tsBlock(){
-    if(!isEdit) return`<div style="text-align:right;font-size:13px;font-weight:600;">¥${tsPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`;
-    let html='';
-    if(ts.useOutsource){
-      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;border:1px solid #eee;">
-        <div style="font-size:10px;color:#888;margin-bottom:3px;">外注</div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <input class="c-in" type="number" value="${ts.outsource.perEp||0}" onchange="setDual(${w.id},'typesetting','outsource','perEp',this.value)" style="width:70px;"/>
-          <span style="font-size:10px;color:#888;">円/話　第</span>
-          <input class="c-in" type="number" value="${ts.outsource.epFrom||1}" onchange="setDual(${w.id},'typesetting','outsource','epFrom',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">〜</span>
-          <input class="c-in" type="number" value="${ts.outsource.epTo||ep}" onchange="setDual(${w.id},'typesetting','outsource','epTo',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">話</span>
-        </div>
-        <div style="margin-top:4px;">${textInp(ts.outsource.assignee,`setDual(${w.id},'typesetting','outsource','assignee',this.value)`,'担当者名')}</div>
-        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useOutsource',false)" style="margin-top:4px;font-size:10px;">削除</button>
-      </div>`;
-    }
-    if(ts.useInhouse){
-      html+=`<div style="margin-bottom:6px;padding:6px 8px;background:#f0f7ff;border-radius:6px;border:1px solid #d0e4ff;">
-        <div style="font-size:10px;color:#1d4ed8;margin-bottom:3px;">社内</div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <input class="c-in" type="number" value="${ts.inhouse.hrRate||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrRate',this.value)" style="width:60px;"/>
-          <span style="font-size:10px;color:#888;">円/h×</span>
-          <input class="c-in" type="number" step="0.25" value="${ts.inhouse.hrs||0}" onchange="setDual(${w.id},'typesetting','inhouse','hrs',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">h　第</span>
-          <input class="c-in" type="number" value="${ts.inhouse.epFrom||1}" onchange="setDual(${w.id},'typesetting','inhouse','epFrom',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">〜</span>
-          <input class="c-in" type="number" value="${ts.inhouse.epTo||ep}" onchange="setDual(${w.id},'typesetting','inhouse','epTo',this.value)" style="width:46px;"/>
-          <span style="font-size:10px;color:#888;">話</span>
-        </div>
-        <div style="margin-top:4px;">${textInp(ts.inhouse.assignee,`setDual(${w.id},'typesetting','inhouse','assignee',this.value)`,'担当者名')}</div>
-        <button class="btn btn-sm btn-danger" onclick="setDualBool(${w.id},'typesetting','useInhouse',false)" style="margin-top:4px;font-size:10px;">削除</button>
-      </div>`;
-    }
-    html+=`<div style="display:flex;gap:4px;margin-top:2px;">
-      ${!ts.useOutsource?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useOutsource',true)" style="font-size:10px;">＋外注追加</button>`:''}
-      ${!ts.useInhouse?`<button class="btn btn-sm" onclick="setDualBool(${w.id},'typesetting','useInhouse',true)" style="font-size:10px;">＋社内追加</button>`:''}
-    </div>`;
-    return html;
-  }
-
-  const fixPerEp=Math.round((c.fix.hrRate||0)*(c.fix.hrs||0));
-  const fixTotal=fixPerEp*ep;
-  const trlTotal=(c.translation.perEp||0)*ep;
-  const cvT=c.cover.amount||0;
-  const varBase=trlTotal+tcTotal+tsTotal+fixTotal+cvT;
-  const ovh=c.overhead||{};
-  const overhead=ovh.fixedAmount>0?(ovh.fixedAmount||0):Math.round(varBase*(ovh.pct||0)/100);
-  const grand=mj+varBase+overhead;
-
-  // 外注・社内の内訳計算
-  function calcOutsourceCost(item){
-    if(!item.useOutsource) return 0;
-    const eps=Math.max(0,(item.outsource.epTo||0)-(item.outsource.epFrom||0)+1);
-    return (item.outsource.perEp||0)*eps;
-  }
-  function calcInhouseCost(item){
-    if(!item.useInhouse) return 0;
-    const eps=Math.max(0,(item.inhouse.epTo||0)-(item.inhouse.epFrom||0)+1);
-    return Math.round((item.inhouse.hrRate||0)*(item.inhouse.hrs||0)*eps);
-  }
-  // 外注合計（翻訳・翻訳チェック外注・写植外注・書影）
-  const outsourceTotal = trlTotal
-    + calcOutsourceCost(c.transCheck)
-    + calcOutsourceCost(c.typesetting)
-    + cvT;
-  // 社内合計（翻訳チェック社内・写植社内・FIX）
-  const inhouseTotal = calcInhouseCost(c.transCheck)
-    + calcInhouseCost(c.typesetting)
-    + fixTotal;
-
-  // 担当者列の表示
-  const assigneeCell=(val,onch)=>isEdit
-    ?`<input class="c-in" type="text" value="${val||''}" onchange="${onch}" placeholder="担当者" style="font-size:11px;width:90px;"/>`
-    :(val?`<span style="font-size:11px;">${val}</span>`:'<span style="font-size:11px;color:#ccc;">–</span>');
-
-  // 担当タイプ表示
-  function typeLabel(item){
-    const parts=[];
-    if(item.useOutsource)parts.push('外注');
-    if(item.useInhouse)parts.push('社内');
-    return parts.length?parts.join('/'):'–';
-  }
-
   const costEl=document.getElementById('cost-inputs');
   if(!costEl) return;
-  costEl.innerHTML=`
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${editBtn}</div>
-    <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr style="background:#fafafa;">
-        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">項目</th>
-        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">1話あたり</th>
-        <th style="padding:6px 10px;text-align:right;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">合計</th>
-        <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当</th>
-        <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #eee;font-weight:500;color:#666;font-size:11px;">担当者</th>
-      </tr></thead>
-      <tbody>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">MG</div><div style="font-size:10px;color:#888;">作品全体</div></td>
-          <td style="padding:8px 10px;text-align:right;">${curBtns}${mgAmt}${mgKrw}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${mj.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">固定</td>
-          <td style="padding:8px 10px;"></td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳</div></td>
-          <td style="padding:8px 10px;text-align:right;">${inp(c.translation.perEp||0,`setF(${w.id},'translation','perEp',this.value)`,'width:80px;text-align:right;')}<span style="font-size:10px;color:#888;">円/話</span></td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${trlTotal.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
-          <td style="padding:8px 10px;">${assigneeCell(c.translation.assignee,`setF(${w.id},'translation','assignee',this.value)`)}</td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">翻訳チェック</div></td>
-          <td style="padding:8px 10px;">${tcBlock()}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tcTotal.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(tc)}</td>
-          <td style="padding:8px 10px;"></td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">写植</div></td>
-          <td style="padding:8px 10px;">${tsBlock()}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${tsTotal.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#666;">${typeLabel(ts)}</td>
-          <td style="padding:8px 10px;"></td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">写植データ監修（FIX）</div><div style="font-size:10px;color:#888;">社内</div></td>
-          <td style="padding:8px 10px;">
-            ${isEdit?`<div class="ih">${inp(c.fix.hrRate||0,`setFix(${w.id},'hrRate',this.value)`,'width:60px;')}<span style="font-size:10px;color:#888;">円/h×</span>${inp(c.fix.hrs||0,`setFix(${w.id},'hrs',this.value)`,'width:46px;')}<span style="font-size:10px;color:#888;">h</span></div>`
-            :`<div style="text-align:right;font-size:13px;font-weight:600;">¥${fixPerEp.toLocaleString()}<span style="font-size:10px;color:#888;">/話</span></div>`}
-          </td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${fixTotal.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">社内</td>
-          <td style="padding:8px 10px;">${assigneeCell(c.fix.assignee,`setFix(${w.id},'assignee',this.value)`)}</td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;">
-          <td style="padding:8px 10px;"><div style="font-weight:600;">書影＆ロゴ制作</div><div style="font-size:10px;color:#888;">総額</div></td>
-          <td style="padding:8px 10px;text-align:right;">${inp(cvT,`setF(${w.id},'cover','amount',this.value)`)}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${cvT.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">外注</td>
-          <td style="padding:8px 10px;">${assigneeCell(c.cover.assignee,`setF(${w.id},'cover','assignee',this.value)`)}</td>
-        </tr>
-        <tr style="border-bottom:1px solid #f0f0f0;background:#fffbf0;">
-          <td style="padding:8px 10px;">
-            <div style="font-weight:600;">諸経費・その他人件費</div>
-            <div style="font-size:10px;color:#888;margin-top:3px;">
-              ${isEdit
-                ?`<span style="display:inline-flex;border:1px solid #ddd;border-radius:5px;overflow:hidden;">
-                  <span data-ovh-mode="pct" data-wid="${w.id}" style="padding:3px 10px;font-size:10px;background:${!(ovh.fixedAmount>0)?'#1d4ed8':'#f5f5f5'};color:${!(ovh.fixedAmount>0)?'#fff':'#555'};cursor:pointer;user-select:none;">％方式</span>
-                  <span data-ovh-mode="fixed" data-wid="${w.id}" style="padding:3px 10px;font-size:10px;background:${ovh.fixedAmount>0?'#1d4ed8':'#f5f5f5'};color:${ovh.fixedAmount>0?'#fff':'#555'};cursor:pointer;user-select:none;">固定金額</span>
-                </span>`
-                :(ovh.fixedAmount>0?'固定金額':'MG除く変動費の%')}
-            </div>
-          </td>
-          <td style="padding:8px 10px;text-align:right;">
-            ${isEdit
-              ?ovh.fixedAmount>0
-                ?`<div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;"><span style="font-size:11px;color:#888;">¥</span>${inp(ovh.fixedAmount||0,`setOverheadFixed(${w.id},this.value)`,'width:80px;text-align:right;')}</div>`
-                :`<div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">${inp(ovh.pct||0,`setOverhead(${w.id},this.value)`,'width:54px;text-align:right;')}<span style="font-size:12px;color:#888;">%</span></div>`
-              :ovh.fixedAmount>0
-                ?`<span style="font-size:13px;font-weight:600;">¥${(ovh.fixedAmount||0).toLocaleString()}</span>`
-                :`<span style="font-size:13px;font-weight:600;">${ovh.pct||0}%</span>`}
-          </td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;">¥${overhead.toLocaleString()}</td>
-          <td style="padding:8px 10px;text-align:center;font-size:11px;color:#aaa;">–</td>
-          <td style="padding:8px 10px;"></td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr style="background:#f9f9f9;border-top:1px solid #eee;">
-          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#666;">外注費合計</td>
-          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#666;">¥${outsourceTotal.toLocaleString()}</td>
-          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#aaa;">翻訳・翻訳チェック外注・写植外注・書影</td>
-        </tr>
-        <tr style="background:#f0f7ff;border-top:1px solid #eee;">
-          <td colspan="2" style="padding:7px 10px;font-size:12px;color:#1d4ed8;">社内費合計</td>
-          <td style="padding:7px 10px;text-align:right;font-size:12px;color:#1d4ed8;">¥${inhouseTotal.toLocaleString()}</td>
-          <td colspan="2" style="padding:7px 10px;font-size:11px;color:#93c5fd;">翻訳チェック社内・写植社内・FIX</td>
-        </tr>
-        <tr style="background:#f9f9f9;border-top:2px solid #ddd;">
-          <td colspan="2" style="padding:10px 10px;font-size:13px;font-weight:700;">合計制作費用 <span style="font-size:10px;font-weight:400;color:#888;">（MG + 外注 + 社内 + 諸経費）</span></td>
-          <td style="padding:10px 10px;text-align:right;font-size:16px;font-weight:700;">¥${grand.toLocaleString()}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-    </div>`;
+  renderCostInputsToEl(w, costEl);
 }
+
 function setCur(id,c){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.currency=c;refreshCostArea(w);debouncedSync();}
 function setMG(id,v){const w=works.find(x=>x.id===id);if(!w)return;w.costs.mg.amount=parseFloat(v)||0;refreshCostArea(w);debouncedSync();}
 function setF(id,k,f,v){
@@ -2196,9 +2228,10 @@ function setOverheadFixed(id,v){
 }
 function setOverheadMode(id,mode){
   const w=works.find(x=>x.id===id);if(!w)return;
-  if(!w.costs.overhead)w.costs.overhead={pct:0,fixedAmount:0};
+  if(!w.costs.overhead)w.costs.overhead={pct:0,fixedAmount:0,mode:'pct'};
+  w.costs.overhead.mode=mode;
   if(mode==='pct'){w.costs.overhead.fixedAmount=0;}
-  else{w.costs.overhead.pct=0;if(!w.costs.overhead.fixedAmount)w.costs.overhead.fixedAmount=0;}
+  else{w.costs.overhead.pct=0;}
   costEditMode[id]=true;
   refreshCostArea(w);debouncedSync();
 }
