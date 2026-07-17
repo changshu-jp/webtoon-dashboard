@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>WEBTOON管理ダッシュボード</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Hiragino Sans','Meiryo',sans-serif;font-size:14px;color:#1a1a1a;background:#f0eeea;min-height:100vh;}
@@ -286,46 +287,66 @@ h1{font-size:17px;font-weight:700;margin-bottom:16px;}
 
 <!-- 収支管理 -->
 <div class="page" id="page-finance">
-  <div class="sec-hdr"><span class="sec-title">収支管理</span></div>
+  <div class="sec-hdr">
+    <span class="sec-title">収支管理</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <label class="btn btn-sm" style="cursor:pointer;" title="ExcelファイルをインポートしてRS・入金額を自動反映">
+        📥 Excel取込
+        <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="importRevenueExcel(this)"/>
+      </label>
+    </div>
+  </div>
 
   <!-- 収支サマリーテーブル -->
   <div class="card" style="margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
       <span style="font-size:13px;font-weight:700;">📊 収支一覧サマリー</span>
-      <button class="btn btn-sm" onclick="toggleFinSummary()" id="fin-summary-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:11px;color:#666;">絞り込み：</span>
+        <div class="fin-filter-bar" id="fin-fbar" style="margin:0;gap:6px;"></div>
+        <span style="font-size:11px;color:#666;">並び替え：</span>
+        <select id="fin-sort" onchange="renderFinSel();renderFinSummary();" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
+          <option value="default">登録順</option>
+          <option value="net-desc">実績収益順（高い順）</option>
+          <option value="net-asc">実績収益順（低い順）</option>
+          <option value="top-rev">入金額合計順</option>
+          <option value="mg">制作費用順</option>
+          <option value="start-date-new">連載開始日順（新しい順）</option>
+        </select>
+        <button class="btn btn-sm" onclick="toggleFinSummary()" id="fin-summary-toggle-btn" style="font-size:11px;">▲ 折りたたむ</button>
+      </div>
     </div>
     <div id="fin-summary-body" style="overflow-x:auto;">
-      <table class="summary-table">
-        <thead><tr id="fin-summary-thead"></tr></thead>
+      <table class="summary-table" id="fin-summary-table">
+        <thead>
+          <tr style="background:#fafafa;">
+            <th style="text-align:left;padding:8px 10px;white-space:nowrap;">作品名</th>
+            <th style="text-align:left;padding:8px 8px;white-space:nowrap;">版元</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">制作費用<br/><span style="font-size:9px;font-weight:400;color:#aaa;">MG含む</span></th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">LINE<br/>マンガ</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">ピッコマ</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">めちゃ<br/>コミ</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">メディア<br/>ドゥ</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">BeLTOON</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">その他</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">入金額<br/>合計</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">RS<br/>(%)</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;">版元<br/>分配額</th>
+            <th style="text-align:right;padding:8px 8px;white-space:nowrap;font-weight:700;">実績累計<br/>収益</th>
+          </tr>
+        </thead>
         <tbody id="fin-summary-tbody"></tbody>
+        <tfoot id="fin-summary-tfoot"></tfoot>
       </table>
     </div>
   </div>
 
-  <!-- フィルター＆ソートバー -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:9px;border:1px solid #e5e5e5;">
-    <span style="font-size:11px;color:#666;">絞り込み：</span>
-    <div class="fin-filter-bar" id="fin-fbar" style="margin:0;gap:6px;"></div>
-    <span style="font-size:11px;color:#666;margin-left:10px;">並び替え：</span>
-    <select id="fin-sort" onchange="renderFinSel()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;">
-      <option value="default">登録順</option>
-      <option value="top-rev">売上順（高い順）</option>
-      <option value="start-date-new">連載開始日順（新しい順）</option>
-      <option value="start-date-old">連載開始日順（古い順）</option>
-      <option value="eps">話数順（多い順）</option>
-      <option value="mg">MG順（高い順）</option>
-    </select>
-    <span style="font-size:11px;color:#666;margin-left:10px;">担当者検索：</span>
-    <input id="fin-assignee-search" type="text" placeholder="担当者名を入力" oninput="renderFinCards()"
-      style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;width:130px;"/>
-  </div>
-  <!-- 作品カード一覧（全作品を縦に並べる） -->
+  <!-- 作品カード一覧 -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <span id="fin-card-count" style="font-size:12px;color:#888;"></span>
     <button class="btn btn-sm" onclick="collapseAllFinCards()" style="font-size:11px;">すべて折りたたむ</button>
   </div>
   <div id="fin-cards-list"></div>
-  <!-- 旧detailパネル（非表示） -->
   <div id="fin-list-view" style="display:none;"></div>
   <div id="fin-content" class="hidden"></div>
 </div><!-- /page-finance -->
@@ -1477,61 +1498,154 @@ function sortFinSummary(col){
 }
 
 function renderFinSummary(){
-  const thead=document.getElementById('fin-summary-thead');
   const tbody=document.getElementById('fin-summary-tbody');
-  if(!thead||!tbody)return;
+  const tfoot=document.getElementById('fin-summary-tfoot');
+  if(!tbody)return;
 
-  thead.innerHTML=
-    thSort('パートナー','partner',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('作品名','title',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('全話数','totalEps',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('連載開始','startDate',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('MG','mg',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('制作費合計','cost',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('累計売上','gross',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('自社収益','net',finSortCol,finSortAsc,'sortFinSummary')+
-    thSort('損益','profit',finSortCol,finSortAsc,'sortFinSummary');
-
+  // ソート
+  const sort=document.getElementById('fin-sort')?.value||'default';
   let list=[...works];
-  if(finSortCol){
-    list.sort((a,b)=>{
-      const ca=calcTotalCost(a),ra=calcRevSummary(a);
-      const cb=calcTotalCost(b),rb=calcRevSummary(b);
-      const vals={
-        partner:[a.partner||'',b.partner||''],
-        title:[a.title||'',b.title||''],
-        totalEps:[a.totalEps,b.totalEps],
-        startDate:[a.startDate||'',b.startDate||''],
-        mg:[mgJPY(a),mgJPY(b)],
-        cost:[ca.total,cb.total],
-        gross:[ra.gross,rb.gross],
-        net:[ra.net,rb.net],
-        profit:[ra.net-ca.total,rb.net-cb.total]
-      };
-      const [av,bv]=vals[finSortCol]||[0,0];
-      if(av<bv)return finSortAsc?-1:1;
-      if(av>bv)return finSortAsc?1:-1;
-      return 0;
-    });
-  }
+  if(sort==='net-desc') list.sort((a,b)=>getNetRevenue(b)-getNetRevenue(a));
+  else if(sort==='net-asc') list.sort((a,b)=>getNetRevenue(a)-getNetRevenue(b));
+  else if(sort==='top-rev') list.sort((a,b)=>getTotalRevenue(b)-getTotalRevenue(a));
+  else if(sort==='mg') list.sort((a,b)=>calcTotalCost(b).total-calcTotalCost(a).total);
+  else if(sort==='start-date-new') list.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+
+  // 合計
+  let totCost=0,totLine=0,totPic=0,totMecha=0,totMedia=0,totBel=0,totOther=0,totRev=0,totNet=0;
 
   tbody.innerHTML=list.map(w=>{
-    const ct=calcTotalCost(w),rv=calcRevSummary(w),pr=rv.net-ct.total;
-    const isSelected=w.id===selectedWorkId;
-    const profColor=pr>=0?'#166534':'#991b1b';
-    return`<tr class="sum-row${isSelected?' selected':''}" onclick="openFinDetail(${w.id})">
-      <td>${w.partner||'–'}</td>
-      <td style="font-weight:600;">${w.title}</td>
-      <td style="text-align:center;">${w.totalEps}話</td>
-      <td>${fmtDateShort(w.startDate)||'–'}</td>
-      <td style="text-align:right;">¥${Math.round(mgJPY(w)/10000)}万</td>
-      <td style="text-align:right;">¥${Math.round(ct.total/10000)}万</td>
-      <td style="text-align:right;">¥${Math.round(rv.gross/10000)}万</td>
-      <td style="text-align:right;">¥${Math.round(rv.net/10000)}万</td>
-      <td style="text-align:right;font-weight:700;color:${profColor};">${pr>=0?'+':''}¥${Math.round(pr/10000)}万</td>
+    const ct=calcTotalCost(w);
+    const rd=w.revenueData||{};
+    const line=rd.linemanaga||0,pic=rd.piccoma||0,mecha=rd.mechacomi||0;
+    const media=rd.mediado||0,bel=rd.beltoon||0,other=rd.other||0;
+    const totalRev=rd.totalRev||(line+pic+mecha+media+bel+other);
+    const rs=rd.rs||0; // 0.5など小数
+    const partnerShare=Math.round(totalRev*rs);
+    const ourRev=totalRev-partnerShare;
+    const netProfit=ourRev-ct.total;
+    const profColor=netProfit>=0?'#166534':'#991b1b';
+    totCost+=ct.total;totLine+=line;totPic+=pic;totMecha+=mecha;
+    totMedia+=media;totBel+=bel;totOther+=other;totRev+=totalRev;totNet+=netProfit;
+    return`<tr style="cursor:pointer;border-bottom:1px solid #f0f0f0;" onclick="toggleFinCard(${w.id})">
+      <td style="padding:7px 10px;font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${w.title}</td>
+      <td style="padding:7px 8px;font-size:11px;color:#555;">${w.partner||'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;">¥${ct.total.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${line?'#1a1a1a':'#ccc'};">${line?'¥'+line.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${pic?'#1a1a1a':'#ccc'};">${pic?'¥'+pic.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${mecha?'#1a1a1a':'#ccc'};">${mecha?'¥'+mecha.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${media?'#1a1a1a':'#ccc'};">${media?'¥'+media.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${bel?'#1a1a1a':'#ccc'};">${bel?'¥'+bel.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:${other?'#1a1a1a':'#ccc'};">${other?'¥'+other.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;font-weight:600;">¥${totalRev.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;">${rs?(rs*100).toFixed(0)+'%':'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;color:#888;">${partnerShare?'¥'+partnerShare.toLocaleString():'–'}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;font-weight:700;color:${profColor};">${netProfit>=0?'+':''}¥${netProfit.toLocaleString()}</td>
     </tr>`;
   }).join('');
+
+  // フッター合計行
+  if(tfoot){
+    const totNetColor=totNet>=0?'#166534':'#991b1b';
+    tfoot.innerHTML=`<tr style="background:#f5f5f5;border-top:2px solid #ddd;font-weight:700;">
+      <td style="padding:8px 10px;" colspan="2">合計</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totCost.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totLine.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totPic.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totMecha.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totMedia.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totBel.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totOther.toLocaleString()}</td>
+      <td style="padding:8px 8px;text-align:right;">¥${totRev.toLocaleString()}</td>
+      <td style="padding:8px 8px;"></td>
+      <td style="padding:8px 8px;"></td>
+      <td style="padding:8px 8px;text-align:right;color:${totNetColor};">${totNet>=0?'+':''}¥${totNet.toLocaleString()}</td>
+    </tr>`;
+  }
 }
+
+function getTotalRevenue(w){
+  const rd=w.revenueData||{};
+  return rd.totalRev||(((rd.linemanaga||0)+(rd.piccoma||0)+(rd.mechacomi||0)+(rd.mediado||0)+(rd.beltoon||0)+(rd.other||0)));
+}
+function getNetRevenue(w){
+  const rd=w.revenueData||{};
+  const totalRev=getTotalRevenue(w);
+  const partnerShare=Math.round(totalRev*(rd.rs||0));
+  return (totalRev-partnerShare)-calcTotalCost(w).total;
+}
+
+/* ---- Excelインポート（収益データ） ---- */
+function importRevenueExcel(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      // ヘッダー行を探す（作品列）
+      let headerRow=-1;
+      for(let i=0;i<rows.length;i++){
+        if(rows[i]&&rows[i].some(c=>c&&String(c).includes('作品'))){
+          headerRow=i;break;
+        }
+      }
+      if(headerRow<0){showToast('error','作品列が見つかりません');return;}
+      const headers=rows[headerRow].map(c=>String(c||''));
+      const colOf=name=>headers.findIndex(h=>h.includes(name));
+      const colTitle=colOf('作品');
+      const colCost=colOf('制作費用');
+      const colMG=colOf('MG');
+      const colLine=colOf('LINE');
+      const colPic=colOf('ピッコマ');
+      const colMecha=colOf('めちゃ');
+      const colMedia=colOf('メディア');
+      const colBel=colOf('BeLTOON');
+      const colComico=colOf('comico');
+      const colOther=colOf('その他');
+      const colTotal=colOf('入金額合計');
+      const colRS=colOf('分配料率');
+      const colPartner=colOf('版元分配');
+      let updated=0;
+      for(let i=headerRow+1;i<rows.length;i++){
+        const row=rows[i];
+        if(!row||!row[colTitle])continue;
+        const title=String(row[colTitle]).trim();
+        if(!title)continue;
+        // 作品名で検索（部分一致）
+        const w=works.find(x=>x.title===title||title.includes(x.title)||x.title.includes(title));
+        if(!w)continue;
+        const num=v=>parseFloat(String(v||'0').replace(/[,，]/g,''))||0;
+        w.revenueData={
+          linemanaga:num(row[colLine]),
+          piccoma:num(row[colPic]),
+          mechacomi:num(row[colMecha]),
+          mediado:num(row[colMedia]),
+          beltoon:num(row[colBel]),
+          comico:num(row[colComico]),
+          other:num(row[colOther]),
+          totalRev:num(row[colTotal]),
+          rs:num(row[colRS]),
+          partnerShare:num(row[colPartner]),
+        };
+        // MG・制作費がある場合は更新
+        if(colMG>=0&&row[colMG]) w.costs.mg.amount=num(row[colMG]);
+        updated++;
+      }
+      showToast('success',`✅ ${updated}作品の収益データを更新しました`);
+      renderFinSummary();renderFinCards();
+      if(syncEnabled)debouncedSync();
+    }catch(err){
+      showToast('error','インポートエラー: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+
+
 
 /* --- Finance --- */
 let finFilter='all';
